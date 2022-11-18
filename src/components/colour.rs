@@ -47,6 +47,7 @@ impl std::fmt::Display for Colour {
 
 pub struct Colours {
     colours: [Colour; 5],
+    index: usize,
 }
 
 impl From<u16> for Colours {
@@ -59,11 +60,19 @@ impl From<u16> for Colours {
                 Colour::from(((colour_word & 0b0000000000111000) >> 3) as u8),
                 Colour::from(((colour_word & 0b0000000000000111) >> 0) as u8),
             ],
+            index: 0,
         }
     }
 }
 
 impl Colours {
+    pub fn new() -> Self {
+        Self {
+            colours: [Colour::White; 5],
+            index: 0,
+        }
+    }
+
     pub fn all_white(&self) -> bool {
         for colour in self.colours {
             if colour != Colour::White {
@@ -76,5 +85,22 @@ impl Colours {
 
     pub fn get(&self, index: usize) -> Colour {
         self.colours[index]
+    }
+}
+
+impl Iterator for Colours {
+    type Item = Colour;
+
+    fn next(&mut self) -> Option<Colour> {
+        let result = match self.index {
+            0 => Some(self.colours[0]),
+            1 => Some(self.colours[1]),
+            2 => Some(self.colours[2]),
+            3 => Some(self.colours[3]),
+            4 => Some(self.colours[4]),
+            _ => None,
+        };
+        self.index += 1;
+        result
     }
 }

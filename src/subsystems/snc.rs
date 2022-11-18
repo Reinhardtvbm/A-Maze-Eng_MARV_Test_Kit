@@ -8,16 +8,11 @@ enum NavInstruction {
     RotateRight,
 }
 
-struct NavConInputData {
-    colours: Colours,
-    incidence: u8,
-}
 
-struct NavConOutputData {
-    instruction: NavInstruction,
-    speed: Option<u8>,
-    rotation: Option<u16>,
-}
+
+
+
+struct StateCon {}
 
 pub struct Snc {
     comm_port: ComPort,
@@ -25,6 +20,7 @@ pub struct Snc {
     output_data: NavConOutputData,
     prev_instruction: NavInstruction,
     next_instruction: NavInstruction,
+    motor_instruction: NavInstruction,
 }
 
 impl Snc {
@@ -35,8 +31,6 @@ impl Snc {
                 colours: Colours::from(0),
                 incidence: 0,
             },
-            output_data: NavConOutputData {
-                instruction: NavInstruction::Forward,
                 speed: None,
                 rotation: None,
             },
@@ -64,19 +58,6 @@ impl Snc {
     }
 
     pub fn update_output_data(&mut self) {
-        match self.output_data.instruction {
-            NavInstruction::Forward => {
-                if self.input_data.colours.all_white() {
-                    return;
-                } else {
-                    if self.input_data.colours.get(1) != Colour::White {
-                        self.next_instruction = NavInstruction::Reverse;
-                    }
-                }
-            }
-            NavInstruction::Reverse => todo!(),
-            NavInstruction::RotateLeft => todo!(),
-            NavInstruction::RotateRight => todo!(),
-        }
+        
     }
 }
