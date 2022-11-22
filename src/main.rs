@@ -4,6 +4,7 @@ mod components {
     pub mod comm_port;
     pub mod constants;
     pub mod packet;
+    pub mod state;
 }
 
 mod subsystems {

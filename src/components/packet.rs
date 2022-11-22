@@ -1,5 +1,6 @@
 use super::comm_port::ControlByte;
 
+#[derive(Clone, Copy)]
 pub struct Packet {
     bytes: [u8; 4],
 }
@@ -30,5 +31,11 @@ impl Packet {
 
     pub fn dec(&self) -> u8 {
         self.bytes[3]
+    }
+}
+
+impl From<[u8; 4]> for Packet {
+    fn from(bytes: [u8; 4]) -> Self {
+        Self { bytes }
     }
 }

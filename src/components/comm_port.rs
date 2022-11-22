@@ -1,5 +1,8 @@
 use serialport::SerialPort;
 
+use super::packet::Packet;
+
+#[derive(Debug)]
 pub enum ComPortError {
     ReadFail,
     WriteFail,
@@ -20,11 +23,11 @@ impl ComPort {
     }
 
     /// reads 4 bytes from the serial port
-    pub fn read(&mut self) -> Result<[u8; 4], ComPortError> {
+    pub fn read(&mut self) -> Result<Packet, ComPortError> {
         let mut buffer = [0_u8; 4];
 
         if self.serial_port.read(&mut buffer).is_ok() {
-            return Ok(buffer);
+            return Ok(Packet::from(buffer));
         } else {
             return Err(ComPortError::ReadFail);
         }

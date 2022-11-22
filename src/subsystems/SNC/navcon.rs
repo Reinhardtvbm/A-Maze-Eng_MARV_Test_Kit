@@ -1,10 +1,13 @@
 use crate::components::{
+    adjacent_bytes::AdjacentBytes,
     colour::{Colour, Colours},
+    comm_port::ControlByte,
     constants::Constants,
     packet::Packet,
 };
 
-enum NavConState {
+#[derive(PartialEq, Clone, Copy)]
+pub enum NavConState {
     Forward,
     Reverse,
     Stop,
@@ -23,16 +26,16 @@ struct WorkingData {
     distance: u16,
     speed_left: u8,
     speed_right: u8,
-    rotation: u8,
+    rotation: u16,
 }
 
-struct NavCon {
+pub struct NavCon {
     current_state: NavConState,
     previous_state: NavConState,
     next_state: NavConState,
     incidence_side: Side,
     previously_encountered_colour: Colour,
-    output_rotation: u16,
+    pub output_rotation: u16,
     reference_distance: u16,
 }
 
@@ -50,13 +53,43 @@ impl NavCon {
     }
 
     fn parse_packets(packets: [Packet; 5]) -> WorkingData {
+        let mut colours = Colours::new();
+        let mut incidence = 0;
+        let mut distance = 0;
+        let mut speed_left = 0;
+        let mut speed_right = 0;
+        let mut rotation = 0;
+
+        for packet in packets {
+            match packet.control_byte() {
+                ControlByte::MazeRotation => {
+                    rotation = u16::from(AdjacentBytes::make(packet.dat1(), packet.dat0()));
+                }
+                ControlByte::MazeSpeeds => {
+                    speed_left = packet.dat1();
+                    speed_right = packet.dat0();
+                }
+                ControlByte::MazeDistance => {
+                    distance = u16::from(AdjacentBytes::make(packet.dat1(), packet.dat0()));
+                }
+                ControlByte::MazeColours => {
+                    colours =
+                        Colours::from(u16::from(AdjacentBytes::make(packet.dat1(), packet.dat0())));
+                }
+                ControlByte::MazeIncidence => {
+                    incidence = packet.dat1();
+                }
+                _ => (),
+            }
+        }
+
         WorkingData {
-            colours: todo!(),
-            incidence: todo!(),
-            distance: todo!(),
-            speed_left: todo!(),
-            speed_right: todo!(),
-            rotation: todo!(),
+            colours,
+            incidence,
+            distance,
+            speed_left,
+            speed_right,
+            rotation,
         }
     }
 
@@ -106,6 +139,10 @@ impl NavCon {
         }
     }
 
+    pub fn get_state(&self) -> NavConState {
+        self.current_state
+    }
+
     pub fn compute_output(&mut self, packets: [Packet; 5]) {
         let working_data = Self::parse_packets(packets);
 
@@ -138,8 +175,22 @@ impl NavCon {
                     }
                 }
             }
-            NavConState::Reverse => todo!(),
-            NavConState::Stop => todo!(),
+            NavConState::Reverse => {
+                // until MARV has reversed for 6cm, keep reversing....
+                if working_data.distance < 60 {
+                    return;
+                }
+
+                self.previous_state = NavConState::Reverse;
+                self.current_state = NavConState::Stop;
+            }
+            NavConState::Stop => {
+                if self.previous_state == NavConState::Forward {
+                    self.current_state = NavConState::Reverse;
+                } else {
+                    self.current_state = self.next_state;
+                }
+            }
             NavConState::RotateLeft => todo!(),
             NavConState::RotateRight => todo!(),
         }
