@@ -1,4 +1,12 @@
-use crate::components::colour::{Colour, Colours};
+use iced::futures::future::Map;
+
+use crate::components::{
+    adjacent_bytes::AdjacentBytes,
+    colour::{Colour, Colours},
+    comm_port::ControlByte,
+    constants::Constants,
+    packet::Packet,
+};
 
 enum NavConState {
     Forward,
@@ -13,19 +21,23 @@ enum Side {
     Right,
 }
 
+struct WorkingData {
+    colours: [Colour; 5],
+    incidence: u8,
+    distance: u16,
+    speed_left: u8,
+    speed_right: u8,
+    rotation: u8,
+}
+
 struct NavCon {
     current_state: NavConState,
     previous_state: NavConState,
     next_state: NavConState,
     incidence_side: Side,
-    reference_distance: u16,
     previously_encountered_colour: Colour,
-    input_colours: Colours,
-    input_incidence: u8,
-    input_distance: u16,
-    output_speed_left: u8,
-    output_speed_right: u8,
     output_rotation: u16,
+    reference_distance: u16,
 }
 
 impl NavCon {
@@ -35,32 +47,70 @@ impl NavCon {
             previous_state: NavConState::Forward,
             next_state: NavConState::Forward,
             incidence_side: Side::Left,
-            input_colours: Colours::new(),
-            input_incidence: 0 as u8,
-            output_speed_left: 0 as u8,
-            output_speed_right: 0 as u8,
             output_rotation: 0 as u16,
             reference_distance: 0 as u16,
-            input_distance: 0 as u16,
             previously_encountered_colour: Colour::White,
         }
     }
 
-    pub fn update_input(&mut self, colours: Colours, incidence: u8) {
-        self.input_colours = colours;
-        self.input_incidence = incidence;
+    fn parse_packets(packets: [Packet; 5]) -> WorkingData {
+        WorkingData {
+            colours: todo!(),
+            incidence: todo!(),
+            distance: todo!(),
+            speed_left: todo!(),
+            speed_right: todo!(),
+            rotation: todo!(),
+        }
     }
 
-    fn handle_indidence_with_line(&mut self, colour: Colour) {
-        if self.input_distance - self.reference_distance > 65 {
-            self.output_rotation = 5;
-        } else {
-            self.output_rotation = self.input_incidence as u16;
+    fn green_encounter(&mut self, incidence: u8, side: Side) {
+        self.output_rotation = match incidence {
+            0..=5 => return,
+            6..=44 => incidence as u16,
+            _ => 5,
+        };
+
+        self.previous_state = NavConState::Forward;
+        self.current_state = NavConState::Stop;
+
+        self.next_state = match side {
+            Side::Left => NavConState::RotateLeft,
+            Side::Right => NavConState::RotateRight,
         }
+    }
+
+    fn blue_encounter(&mut self, incidence: u8, side: Side) {
+        self.previous_state = NavConState::Forward;
+        self.current_state = NavConState::Stop;
+        self.next_state = NavConState::RotateRight;
+
+        self.output_rotation = match side {
+            Side::Left => 90 - incidence as u16,
+            Side::Right => 90 + incidence as u16,
+        }
+    }
+
+    fn handle_indidence_with_line(
+        &mut self,
+        incidence: u8,
+        distance: u16,
+        colour: Colour,
+        side: Side,
+    ) {
+        if distance - self.reference_distance > Constants::inter_sensor_distance() {
+            self.output_rotation = 5;
+            return;
+        }
+
+        let add_to_rotation = match side {
+            Side::Left => -1 * incidence as i16,
+            Side::Right => incidence as i16,
+        };
 
         match colour {
             Colour::Red | Colour::Green => {
-                if self.input_incidence <= 5 {
+                if incidence <= 5 {
                     return;
                 }
                 self.previously_encountered_colour = colour;

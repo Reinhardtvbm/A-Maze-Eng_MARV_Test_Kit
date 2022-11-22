@@ -1,18 +1,25 @@
-// mod components {
-//     pub mod colour;
-//     pub mod comm_port;
-// }
+mod components {
+    pub mod adjacent_bytes;
+    pub mod colour;
+    pub mod comm_port;
+    pub mod constants;
+    pub mod packet;
+}
 
-// mod subsystems {
-//     pub mod mdps;
-//     //pub mod snc;
-//     pub mod ss;
-//     mod snc_components {
-//         pub mod navcon;
-//     }
-// }
+mod subsystems {
+    mod snc {
+        pub mod navcon;
+        pub mod snc;
+    }
 
-use maze::graph::Graph;
+    mod mdps {
+        pub mod mdps;
+    }
+
+    mod ss {
+        pub mod ss;
+    }
+}
 
 mod maze {
     pub mod graph;
@@ -20,19 +27,5 @@ mod maze {
 }
 
 fn main() {
-    let mut new_graph: Graph<u8> = Graph::new();
-
-    new_graph.add_node(1);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
-
-    println!("{}", new_graph.get_node(1).unwrap());
+    println!("Hello MARV!");
 }

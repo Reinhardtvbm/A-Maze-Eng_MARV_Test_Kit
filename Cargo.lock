@@ -13,14 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "EPR320_Dev_Test"
-version = "0.1.0"
-dependencies = [
- "iced",
- "serialport",
-]
-
-[[package]]
 name = "IOKit-sys"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -562,6 +554,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "epr320_dev_test"
+version = "0.1.0"
+dependencies = [
+ "iced",
+ "serialport",
 ]
 
 [[package]]

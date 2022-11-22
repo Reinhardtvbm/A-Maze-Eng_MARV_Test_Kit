@@ -45,6 +45,7 @@ impl std::fmt::Display for Colour {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Colours {
     colours: [Colour; 5],
     index: usize,

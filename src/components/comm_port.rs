@@ -40,7 +40,7 @@ impl ComPort {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum ControlByte {
     IdleButton,
     Calibrated,
