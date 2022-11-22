@@ -1,9 +1,5 @@
-use iced::futures::future::Map;
-
 use crate::components::{
-    adjacent_bytes::AdjacentBytes,
     colour::{Colour, Colours},
-    comm_port::ControlByte,
     constants::Constants,
     packet::Packet,
 };
@@ -22,7 +18,7 @@ enum Side {
 }
 
 struct WorkingData {
-    colours: [Colour; 5],
+    colours: Colours,
     incidence: u8,
     distance: u16,
     speed_left: u8,
@@ -91,7 +87,7 @@ impl NavCon {
         }
     }
 
-    fn handle_indidence_with_line(
+    fn handle_incidence_with_line(
         &mut self,
         incidence: u8,
         distance: u16,
@@ -103,57 +99,39 @@ impl NavCon {
             return;
         }
 
-        let add_to_rotation = match side {
-            Side::Left => -1 * incidence as i16,
-            Side::Right => incidence as i16,
-        };
-
         match colour {
-            Colour::Red | Colour::Green => {
-                if incidence <= 5 {
-                    return;
-                }
-                self.previously_encountered_colour = colour;
-            }
-            Colour::Black | Colour::Blue => {
-                if self.previously_encountered_colour != Colour::Blue {
-                    self.output_rotation += 90;
-                } else {
-                    self.output_rotation += 180;
-                }
-                self.previously_encountered_colour = Colour::Blue;
-            }
+            Colour::Red | Colour::Green => self.green_encounter(incidence, side),
+            Colour::Black | Colour::Blue => self.blue_encounter(incidence, side),
             _ => {}
-        }
-
-        if let Side::Left = self.incidence_side {
-            self.next_state = NavConState::RotateRight
-        } else {
-            self.next_state = NavConState::RotateRight
         }
     }
 
-    pub fn compute_output(&mut self) {
+    pub fn compute_output(&mut self, packets: [Packet; 5]) {
+        let working_data = Self::parse_packets(packets);
+
         match self.current_state {
             NavConState::Forward => {
-                if self.input_colours.all_white() {
+                if working_data.colours.all_white() {
                     // if all the sensors see white then
                     // MARV can continue going forward
                     return;
                 } else {
-                    for (index, colour) in self.input_colours.enumerate() {
+                    for (index, colour) in working_data.colours.enumerate() {
                         if colour != Colour::White {
                             match index {
-                                0 => {
-                                    self.incidence_side = Side::Left;
-                                    self.reference_distance = self.input_distance;
-                                }
-                                1 => self.handle_indidence_with_line(colour),
-                                3 => self.handle_indidence_with_line(colour),
-                                4 => {
-                                    self.incidence_side = Side::Right;
-                                    self.reference_distance = self.input_distance;
-                                }
+                                1 => self.handle_incidence_with_line(
+                                    working_data.incidence,
+                                    working_data.distance,
+                                    colour,
+                                    Side::Left,
+                                ),
+                                3 => self.handle_incidence_with_line(
+                                    working_data.incidence,
+                                    working_data.distance,
+                                    colour,
+                                    Side::Right,
+                                ),
+                                0 | 4 => self.reference_distance = working_data.distance,
                                 _ => {}
                             }
                         }
