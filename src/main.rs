@@ -12,27 +12,35 @@
 //     }
 // }
 
+use gui::Counter;
+use iced::{Sandbox, Settings};
 use maze::graph::Graph;
+
+mod gui;
 
 mod maze {
     pub mod graph;
     pub mod maze;
 }
 
-fn main() {
-    let mut new_graph: Graph<u8> = Graph::new();
+fn main() -> iced::Result {
+    // let mut new_graph: Graph<u8> = Graph::new();
 
-    new_graph.add_node(1);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
-    println!("==================================");
-    new_graph.add_node(2);
+    // new_graph.add_node(1);
+    // println!("==================================");
+    // new_graph.add_node(2);
+    // println!("==================================");
+    // new_graph.add_node(2);
+    // println!("==================================");
+    // new_graph.add_node(2);
+    // println!("==================================");
+    // new_graph.add_node(2);
+    // println!("==================================");
+    // new_graph.add_node(2);
 
-    println!("{}", new_graph.get_node(1).unwrap());
+    // println!("{}", new_graph.get_node(1).unwrap());
+
+    Counter::run(Settings::default())?;
+
+    Ok(())
 }

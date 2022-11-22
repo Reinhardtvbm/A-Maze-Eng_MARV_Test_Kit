@@ -8,10 +8,6 @@ enum NavInstruction {
     RotateRight,
 }
 
-
-
-
-
 struct StateCon {}
 
 pub struct Snc {
@@ -31,9 +27,8 @@ impl Snc {
                 colours: Colours::from(0),
                 incidence: 0,
             },
-                speed: None,
-                rotation: None,
-            },
+            speed: None,
+            rotation: None,
             prev_instruction: NavInstruction::Forward,
             next_instruction: NavInstruction::Forward,
         }
@@ -57,7 +52,5 @@ impl Snc {
         }
     }
 
-    pub fn update_output_data(&mut self) {
-        
-    }
+    pub fn update_output_data(&mut self) {}
 }
