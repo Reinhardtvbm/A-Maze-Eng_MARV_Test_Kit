@@ -109,7 +109,6 @@ impl ControlByte {
             ControlByte::MazeColours => Ok(177),
             ControlByte::MazeIncidence => Ok(178),
             ControlByte::SosSpeed => Ok(228),
-            _ => Err(()),
         }
     }
 }

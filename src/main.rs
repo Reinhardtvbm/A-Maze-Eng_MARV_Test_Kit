@@ -37,5 +37,7 @@ fn main() {
 
     let mut system = System::new();
 
+    system.run();
+
     println!("{:?}", system);
 }
