@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug};
+
 use serialport::SerialPort;
 
 use super::packet::Packet;
@@ -61,6 +63,7 @@ pub enum ControlByte {
     MazeEndOfMaze,
     MazeColours,
     MazeIncidence,
+    SosSpeed,
 }
 
 impl ControlByte {
@@ -82,6 +85,7 @@ impl ControlByte {
             179 => Ok(Self::MazeEndOfMaze),
             177 => Ok(Self::MazeColours),
             178 => Ok(Self::MazeIncidence),
+            228 => Ok(Self::SosSpeed),
             _ => Err(()),
         }
     }
@@ -104,7 +108,14 @@ impl ControlByte {
             ControlByte::MazeEndOfMaze => Ok(179),
             ControlByte::MazeColours => Ok(177),
             ControlByte::MazeIncidence => Ok(178),
+            ControlByte::SosSpeed => Ok(228),
             _ => Err(()),
         }
+    }
+}
+
+impl fmt::Debug for ComPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.serial_port.name().unwrap())
     }
 }

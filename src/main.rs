@@ -1,5 +1,8 @@
+use crate::subsystems::system::System;
+
 mod components {
     pub mod adjacent_bytes;
+    pub mod buffer;
     pub mod colour;
     pub mod comm_port;
     pub mod constants;
@@ -20,6 +23,8 @@ mod subsystems {
     mod ss {
         pub mod ss;
     }
+
+    pub mod system;
 }
 
 mod maze {
@@ -29,4 +34,8 @@ mod maze {
 
 fn main() {
     println!("Hello MARV!");
+
+    let mut system = System::new();
+
+    println!("{:?}", system);
 }

@@ -6,7 +6,7 @@ use crate::components::{
     packet::Packet,
 };
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum NavConState {
     Forward,
     Reverse,
@@ -15,6 +15,7 @@ pub enum NavConState {
     RotateRight,
 }
 
+#[derive(Debug)]
 enum Side {
     Left,
     Right,
@@ -29,6 +30,7 @@ struct WorkingData {
     rotation: u16,
 }
 
+#[derive(Debug)]
 pub struct NavCon {
     current_state: NavConState,
     previous_state: NavConState,

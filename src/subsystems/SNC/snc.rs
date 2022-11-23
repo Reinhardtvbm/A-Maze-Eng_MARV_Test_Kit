@@ -1,22 +1,45 @@
-use crate::components::comm_port::{ComPort, ControlByte};
+use std::sync::Arc;
+
+use crate::components::buffer::Buffer;
+use crate::components::comm_port::{self, ComPort, ControlByte};
 use crate::components::packet::Packet;
 use crate::components::state::SystemState;
 use crate::subsystems::snc::navcon::{NavCon, NavConState};
 
+#[derive(Debug)]
 pub struct Snc {
+    buffer: Arc<Buffer>,
     state: SystemState,
-    port: ComPort,
+    port: Option<ComPort>,
     navcon: NavCon,
     auto: bool,
 }
 
 impl Snc {
-    pub fn new() -> Self {
+    pub fn new(buffer: &Arc<Buffer>, activate_port: bool) -> Self {
+        let comm_port;
+
+        if activate_port {
+            comm_port = Some(ComPort::new(String::from("69"), 19200));
+        } else {
+            comm_port = None;
+        }
+
         Self {
+            buffer: Arc::clone(buffer),
             state: SystemState::Idle,
-            port: ComPort::new(String::from("69"), 19200),
+            port: comm_port,
             navcon: NavCon::new(),
             auto: true,
+        }
+    }
+
+    fn write(&self, data: &[u8; 4]) {
+        if self.port.is_some() {
+            self.port
+                .unwrap()
+                .write(data)
+                .expect("Could not write to port in Maze state");
         }
     }
 
@@ -24,9 +47,7 @@ impl Snc {
         match self.state {
             SystemState::Idle => {
                 // write touch detected to port
-                self.port
-                    .write(&[16, 1, 100, 0])
-                    .expect("Could not write to port in Maze state");
+                self.write(&[16, 1, 100, 0]);
 
                 // go to calibrate state
                 self.state = SystemState::Calibrate;
@@ -122,7 +143,18 @@ impl Snc {
                     }
                 }
             }
-            SystemState::Sos => todo!(),
+            SystemState::Sos => {
+                while Packet::from(self.port.read().expect("Failed to read input data in Maze"))
+                    .control_byte()
+                    != ControlByte::SosSpeed
+                { /* Do Noting */ }
+
+                self.port
+                    .write(&[208, 1, 0, 0])
+                    .expect("Could not write clap/snap in SOS");
+
+                self.state = SystemState::Idle;
+            }
         }
     }
 }
