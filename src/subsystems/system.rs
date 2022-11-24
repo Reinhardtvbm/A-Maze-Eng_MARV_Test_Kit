@@ -16,23 +16,23 @@ pub struct System {
     pub snc: Snc,
     pub ss: Ss,
     pub mdps: Mdps,
-    pub shared_buffer: SharedBuffer,
 }
 
 impl System {
     pub fn new() -> Self {
-        let shared_buf = Rc::new(RefCell::new(Buffer::new()));
+        let snc_buffer = Rc::new(RefCell::new(Buffer::new()));
+        let ss_buffer = Rc::new(RefCell::new(Buffer::new()));
+        let mdps_buffer = Rc::new(RefCell::new(Buffer::new()));
 
         Self {
-            snc: Snc::new(&shared_buf, false),
-            ss: Ss {},
-            mdps: Mdps {},
-            shared_buffer: shared_buf,
+            snc: Snc::new([&ss_buffer, &mdps_buffer], &snc_buffer, false),
+            ss: Ss::new([&snc_buffer, &mdps_buffer], &ss_buffer),
+            mdps: Mdps::new([&ss_buffer, &snc_buffer], &mdps_buffer),
         }
     }
 
     pub fn run(&mut self) {
-        for _i in 0..5 {
+        for _i in 0..3 {
             self.snc.run();
         }
     }

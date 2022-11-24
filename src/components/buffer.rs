@@ -27,9 +27,9 @@ impl Get for SharedBuffer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Buffer {
-    heap: VecDeque<Vec<Packet>>,
+    heap: VecDeque<Packet>,
 }
 
 impl Buffer {
@@ -40,20 +40,12 @@ impl Buffer {
     }
 
     pub fn write(&mut self, packet: Packet) {
-        self.heap.push_front(vec![packet; 2]);
+        self.heap.push_front(packet);
 
         println!("writing to buffer");
     }
 
-    pub fn read(&mut self) -> Result<Packet, ()> {
-        let return_packet = self.heap.back_mut().expect("buffer empty :(").remove(0);
-
-        if self.heap.back().expect("buffer empty :(").len() == 0 {
-            self.heap.pop_back();
-        }
-
-        println!("read from buffer");
-
-        return Ok(return_packet);
+    pub fn read(&mut self) -> Option<Packet> {
+        self.heap.pop_back()
     }
 }
