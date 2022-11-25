@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::components::buffer::{Buffer, SharedBuffer};
+use crate::components::buffer::Buffer;
 use crate::subsystems::mdps::mdps::Mdps;
 use crate::subsystems::snc::snc::Snc;
 use crate::subsystems::ss::ss::Ss;
@@ -26,8 +26,8 @@ impl System {
 
         Self {
             snc: Snc::new([&ss_buffer, &mdps_buffer], &snc_buffer, false),
-            ss: Ss::new([&snc_buffer, &mdps_buffer], &ss_buffer),
-            mdps: Mdps::new([&ss_buffer, &snc_buffer], &mdps_buffer),
+            ss: Ss::new([&snc_buffer, &mdps_buffer], &ss_buffer, false),
+            mdps: Mdps::new([&ss_buffer, &snc_buffer], &mdps_buffer, false),
         }
     }
 

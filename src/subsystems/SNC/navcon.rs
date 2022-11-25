@@ -25,9 +25,6 @@ struct WorkingData {
     colours: Colours,
     incidence: u8,
     distance: u16,
-    speed_left: u8,
-    speed_right: u8,
-    rotation: u16,
 }
 
 #[derive(Debug)]
@@ -35,7 +32,6 @@ pub struct NavCon {
     current_state: NavConState,
     previous_state: NavConState,
     next_state: NavConState,
-    incidence_side: Side,
     previously_encountered_colour: Colour,
     pub output_rotation: u16,
     reference_distance: u16,
@@ -47,7 +43,6 @@ impl NavCon {
             current_state: NavConState::Forward,
             previous_state: NavConState::Forward,
             next_state: NavConState::Forward,
-            incidence_side: Side::Left,
             output_rotation: 0 as u16,
             reference_distance: 0 as u16,
             previously_encountered_colour: Colour::White,
@@ -58,19 +53,9 @@ impl NavCon {
         let mut colours = Colours::new();
         let mut incidence = 0;
         let mut distance = 0;
-        let mut speed_left = 0;
-        let mut speed_right = 0;
-        let mut rotation = 0;
 
         for packet in packets {
             match packet.control_byte() {
-                ControlByte::MazeRotation => {
-                    rotation = u16::from(AdjacentBytes::make(packet.dat1(), packet.dat0()));
-                }
-                ControlByte::MazeSpeeds => {
-                    speed_left = packet.dat1();
-                    speed_right = packet.dat0();
-                }
                 ControlByte::MazeDistance => {
                     distance = u16::from(AdjacentBytes::make(packet.dat1(), packet.dat0()));
                 }
@@ -89,9 +74,6 @@ impl NavCon {
             colours,
             incidence,
             distance,
-            speed_left,
-            speed_right,
-            rotation,
         }
     }
 
@@ -119,7 +101,13 @@ impl NavCon {
         self.output_rotation = match side {
             Side::Left => 90 - incidence as u16,
             Side::Right => 90 + incidence as u16,
+        };
+
+        if self.previously_encountered_colour == Colour::Blue {
+            self.output_rotation += 90;
         }
+
+        self.previously_encountered_colour = Colour::Blue;
     }
 
     fn handle_incidence_with_line(

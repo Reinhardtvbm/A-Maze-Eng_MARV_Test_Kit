@@ -12,9 +12,9 @@ impl Packet {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.bytes = [0; 4];
-    }
+    // pub fn reset(&mut self) {
+    //     self.bytes = [0; 4];
+    // }
 
     pub fn control_byte(&self) -> ControlByte {
         ControlByte::from(self.bytes[0])
@@ -29,9 +29,9 @@ impl Packet {
         self.bytes[2]
     }
 
-    pub fn dec(&self) -> u8 {
-        self.bytes[3]
-    }
+    // pub fn dec(&self) -> u8 {
+    //     self.bytes[3]
+    // }
 }
 
 impl From<[u8; 4]> for Packet {

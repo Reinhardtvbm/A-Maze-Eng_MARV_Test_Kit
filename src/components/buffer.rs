@@ -49,3 +49,8 @@ impl Buffer {
         self.heap.pop_back()
     }
 }
+
+pub trait BufferUser {
+    fn write(&mut self, data: &mut [u8; 4]);
+    fn read(&mut self) -> Option<Packet>;
+}

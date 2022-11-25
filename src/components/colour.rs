@@ -83,10 +83,6 @@ impl Colours {
 
         true
     }
-
-    pub fn get(&self, index: usize) -> Colour {
-        self.colours[index]
-    }
 }
 
 impl Iterator for Colours {

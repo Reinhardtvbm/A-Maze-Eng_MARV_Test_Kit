@@ -90,27 +90,27 @@ impl ControlByte {
         }
     }
 
-    pub fn to(byte: Self) -> Result<u8, ()> {
-        match byte {
-            ControlByte::IdleButton => Ok(16),
-            ControlByte::Calibrated => Ok(112),
-            ControlByte::CalibrateOperationalVelocity => Ok(96),
-            ControlByte::CalibrateBatteryLevel => Ok(97),
-            ControlByte::CalibrateColours => Ok(113),
-            ControlByte::CalibrateButton => Ok(80),
-            ControlByte::MazeClapSnap => Ok(145),
-            ControlByte::MazeButton => Ok(146),
-            ControlByte::MazeNavInstructions => Ok(147),
-            ControlByte::MazeBatteryLevel => Ok(161),
-            ControlByte::MazeRotation => Ok(162),
-            ControlByte::MazeSpeeds => Ok(163),
-            ControlByte::MazeDistance => Ok(164),
-            ControlByte::MazeEndOfMaze => Ok(179),
-            ControlByte::MazeColours => Ok(177),
-            ControlByte::MazeIncidence => Ok(178),
-            ControlByte::SosSpeed => Ok(228),
-        }
-    }
+    // pub fn to(byte: Self) -> Result<u8, ()> {
+    //     match byte {
+    //         ControlByte::IdleButton => Ok(16),
+    //         ControlByte::Calibrated => Ok(112),
+    //         ControlByte::CalibrateOperationalVelocity => Ok(96),
+    //         ControlByte::CalibrateBatteryLevel => Ok(97),
+    //         ControlByte::CalibrateColours => Ok(113),
+    //         ControlByte::CalibrateButton => Ok(80),
+    //         ControlByte::MazeClapSnap => Ok(145),
+    //         ControlByte::MazeButton => Ok(146),
+    //         ControlByte::MazeNavInstructions => Ok(147),
+    //         ControlByte::MazeBatteryLevel => Ok(161),
+    //         ControlByte::MazeRotation => Ok(162),
+    //         ControlByte::MazeSpeeds => Ok(163),
+    //         ControlByte::MazeDistance => Ok(164),
+    //         ControlByte::MazeEndOfMaze => Ok(179),
+    //         ControlByte::MazeColours => Ok(177),
+    //         ControlByte::MazeIncidence => Ok(178),
+    //         ControlByte::SosSpeed => Ok(228),
+    //     }
+    // }
 }
 
 impl fmt::Debug for ComPort {

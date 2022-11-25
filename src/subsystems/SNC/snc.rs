@@ -1,12 +1,9 @@
-use std::rc::Rc;
-
-use serialport::DataBits;
-
-use crate::components::buffer::{Buffer, Get, SharedBuffer};
+use crate::components::buffer::{BufferUser, Get, SharedBuffer};
 use crate::components::comm_port::{ComPort, ControlByte};
 use crate::components::packet::Packet;
 use crate::components::state::SystemState;
 use crate::subsystems::snc::navcon::{NavCon, NavConState};
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Snc {
@@ -15,7 +12,6 @@ pub struct Snc {
     state: SystemState,
     port: Option<ComPort>,
     navcon: NavCon,
-    auto: bool,
 }
 
 impl Snc {
@@ -24,13 +20,10 @@ impl Snc {
         r_buffer: &SharedBuffer,
         activate_port: bool,
     ) -> Self {
-        let comm_port;
-
-        if activate_port {
-            comm_port = Some(ComPort::new(String::from("69"), 19200));
-        } else {
-            comm_port = None;
-        }
+        let comm_port = match activate_port {
+            true => Some(ComPort::new(String::from("69"), 19200)),
+            false => None,
+        };
 
         Self {
             read_buffer: Rc::clone(r_buffer),
@@ -38,40 +31,6 @@ impl Snc {
             state: SystemState::Idle,
             port: comm_port,
             navcon: NavCon::new(),
-            auto: true,
-        }
-    }
-
-    fn write(&mut self, data: &mut [u8; 4]) {
-        if self.port.is_some() {
-            self.port
-                .as_mut()
-                .unwrap()
-                .write(&data)
-                .expect("Could not write to port in Maze state");
-        } else {
-            let write_data = *data;
-
-            self.write_buffers[0]
-                .get_mut()
-                .write(Packet::from(write_data));
-            self.write_buffers[1]
-                .get_mut()
-                .write(Packet::from(write_data));
-        }
-    }
-
-    fn read(&mut self) -> Option<Packet> {
-        if self.port.is_some() {
-            Some(
-                self.port
-                    .as_mut()
-                    .unwrap()
-                    .read()
-                    .expect("Failed to read from port in Calibrate"),
-            )
-        } else {
-            self.read_buffer.get_mut().read()
         }
     }
 
@@ -88,12 +47,14 @@ impl Snc {
             }
             SystemState::Calibrate => match self.read() {
                 Some(data) => {
-                    self.write(&mut [80, 1, 0, 0]);
-                    self.write(&mut [145, 0, 0, 0]);
-                    self.write(&mut [146, 0, 0, 0]);
-                    self.write(&mut [147, 100, 100, 0]);
+                    if data.control_byte() == ControlByte::CalibrateColours {
+                        self.write(&mut [80, 1, 0, 0]);
+                        self.write(&mut [145, 0, 0, 0]);
+                        self.write(&mut [146, 0, 0, 0]);
+                        self.write(&mut [147, 100, 100, 0]);
 
-                    self.state = SystemState::Maze;
+                        self.state = SystemState::Maze;
+                    }
                 }
                 None => println!("no new data in buffer (Calibrate)"),
             },
@@ -153,6 +114,41 @@ impl Snc {
 
                 self.state = SystemState::Idle;
             }
+        }
+    }
+}
+
+impl BufferUser for Snc {
+    fn write(&mut self, data: &mut [u8; 4]) {
+        if self.port.is_some() {
+            self.port
+                .as_mut()
+                .unwrap()
+                .write(&data)
+                .expect("Could not write to port in Maze state");
+        } else {
+            let write_data = *data;
+
+            self.write_buffers[0]
+                .get_mut()
+                .write(Packet::from(write_data));
+            self.write_buffers[1]
+                .get_mut()
+                .write(Packet::from(write_data));
+        }
+    }
+
+    fn read(&mut self) -> Option<Packet> {
+        if self.port.is_some() {
+            Some(
+                self.port
+                    .as_mut()
+                    .unwrap()
+                    .read()
+                    .expect("Failed to read from port in Calibrate"),
+            )
+        } else {
+            self.read_buffer.get_mut().read()
         }
     }
 }
