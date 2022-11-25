@@ -34,35 +34,25 @@ impl Ss {
 
 impl BufferUser for Ss {
     fn write(&mut self, data: &mut [u8; 4]) {
-        if self.port.is_some() {
-            self.port
-                .as_mut()
-                .unwrap()
-                .write(&data)
-                .expect("Could not write to port in Maze state");
-        } else {
-            let write_data = *data;
+        match self.port.as_mut() {
+            Some(port) => port.write(&data).expect("Could not write to port."),
+            None => {
+                let write_data = *data;
 
-            self.write_buffers[0]
-                .get_mut()
-                .write(Packet::from(write_data));
-            self.write_buffers[1]
-                .get_mut()
-                .write(Packet::from(write_data));
+                self.write_buffers[0]
+                    .get_mut()
+                    .write(Packet::from(write_data));
+                self.write_buffers[1]
+                    .get_mut()
+                    .write(Packet::from(write_data));
+            }
         }
     }
 
     fn read(&mut self) -> Option<Packet> {
-        if self.port.is_some() {
-            Some(
-                self.port
-                    .as_mut()
-                    .unwrap()
-                    .read()
-                    .expect("Failed to read from port in Calibrate"),
-            )
-        } else {
-            self.read_buffer.get_mut().read()
+        match self.port.as_mut() {
+            Some(com_port) => Some(com_port.read().expect("Failed to read from port.")),
+            None => self.read_buffer.get_mut().read(),
         }
     }
 }

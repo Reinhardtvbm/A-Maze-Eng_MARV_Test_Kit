@@ -27,11 +27,6 @@ mod subsystems {
     pub mod system;
 }
 
-mod maze {
-    pub mod graph;
-    pub mod maze;
-}
-
 fn main() {
     println!("Hello MARV!");
 
