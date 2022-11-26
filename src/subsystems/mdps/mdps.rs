@@ -7,6 +7,8 @@ use crate::components::{
     state::SystemState,
 };
 
+use crate::subsystems::mdps::wheel;
+
 #[derive(Debug)]
 pub struct Mdps {
     read_buffer: SharedBuffer,
