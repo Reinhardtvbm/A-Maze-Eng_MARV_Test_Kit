@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 struct Wheels {
     left_speed: i16,
@@ -7,6 +7,7 @@ struct Wheels {
     right_distance: f32,
     total_distance: f32,
     axle_dist: f32,
+    time: SystemTime,
 }
 
 impl Wheels {
@@ -18,6 +19,7 @@ impl Wheels {
             right_distance: 0.0,
             total_distance: 0.0,
             axle_dist: axle_distance,
+            time: SystemTime::now(),
         }
     } 
     
@@ -29,7 +31,10 @@ impl Wheels {
         self.right_speed = speed;
     }
 
-    pub fn update_distance(&mut self, time: Duration) {
+    pub fn update_distance(&mut self) {
+        let time = self.time.elapsed().unwrap();
+        self.time = SystemTime::now();
+
         if self.left_speed == 0 && self.right_speed == 0 {
             self.left_distance = 0.0;
             self.right_distance = 0.0;
