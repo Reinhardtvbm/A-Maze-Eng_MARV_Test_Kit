@@ -138,11 +138,7 @@ impl NavCon {
 
         match self.current_state {
             NavConState::Forward => {
-                if working_data.colours.all_white() {
-                    // if all the sensors see white then
-                    // MARV can continue going forward
-                    return;
-                } else {
+                if !working_data.colours.all_white() {
                     for (index, colour) in working_data.colours.enumerate() {
                         if colour != Colour::White {
                             match index {
@@ -175,10 +171,9 @@ impl NavCon {
                 self.current_state = NavConState::Stop;
             }
             NavConState::Stop => {
-                if self.previous_state == NavConState::Forward {
-                    self.current_state = NavConState::Reverse;
-                } else {
-                    self.current_state = self.next_state;
+                self.current_state = match self.previous_state {
+                    NavConState::Forward => NavConState::Reverse,
+                    _ => self.next_state,
                 }
             }
             NavConState::RotateLeft => todo!(),

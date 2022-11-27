@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use crate::components::{
     buffer::{BufferUser, Get, SharedBuffer},
-    comm_port::ComPort,
-    packet::Packet,
+    comm_port::{ComPort, ControlByte},
+    packet::{self, Packet},
     state::SystemState,
 };
 
@@ -13,6 +13,7 @@ pub struct Mdps {
     write_buffers: [SharedBuffer; 2],
     port: Option<ComPort>,
     state: SystemState,
+    operational_velocity: u8,
 }
 
 impl Mdps {
@@ -31,14 +32,70 @@ impl Mdps {
             write_buffers: [Rc::clone(w_buffers[0]), Rc::clone(w_buffers[1])],
             port: comm_port,
             state: SystemState::Idle,
+            operational_velocity: 0,
         }
     }
 
     pub fn run(&mut self) {
         match self.state {
-            SystemState::Idle => (/* No things */),
-            SystemState::Calibrate => { /* Calibration things */ }
-            SystemState::Maze => { /* Maze things */ }
+            SystemState::Idle => match self.read() {
+                /* Idle things */
+                Some(packet) => {
+                    if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
+                        self.operational_velocity = packet.dat0();
+                        self.state = SystemState::Calibrate;
+                    }
+                }
+                None => (),
+            },
+            SystemState::Calibrate => {
+                /* Calibration things */
+                match self.read() {
+                    Some(packet) => match packet.control_byte() {
+                        ControlByte::Calibrated => {
+                            self.write(&mut [
+                                u8::from(ControlByte::CalibrateOperationalVelocity),
+                                self.operational_velocity,
+                                self.operational_velocity,
+                                0,
+                            ]);
+
+                            self.write(&mut [
+                                u8::from(ControlByte::CalibrateBatteryLevel),
+                                0,
+                                0,
+                                0,
+                            ]);
+                        }
+                        ControlByte::CalibrateButton => {
+                            if packet.dat1() == 1 {
+                                self.state = SystemState::Maze;
+                            }
+                        }
+                        _ => (),
+                    },
+                    None => (),
+                }
+            }
+            SystemState::Maze => {
+                /* Maze things */
+                match self.read() {
+                    Some(packet) => match packet.control_byte() {
+                        ControlByte::MazeClapSnap => todo!(),
+                        ControlByte::MazeButton => todo!(),
+                        ControlByte::MazeNavInstructions => match packet.dec() {
+                            0 => {}
+                            1 => {}
+                            2 => {}
+                            3 => {}
+                            _ => (),
+                        },
+                        ControlByte::MazeEndOfMaze => self.state = SystemState::Idle,
+                        _ => (),
+                    },
+                    None => (),
+                }
+            }
             SystemState::Sos => { /* SOS things */ }
         }
     }

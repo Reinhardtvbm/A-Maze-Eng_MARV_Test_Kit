@@ -29,9 +29,9 @@ impl Packet {
         self.bytes[2]
     }
 
-    // pub fn dec(&self) -> u8 {
-    //     self.bytes[3]
-    // }
+    pub fn dec(&self) -> u8 {
+        self.bytes[3]
+    }
 }
 
 impl From<[u8; 4]> for Packet {
