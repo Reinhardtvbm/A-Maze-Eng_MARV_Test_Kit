@@ -18,6 +18,7 @@ mod subsystems {
 
     mod mdps {
         pub mod mdps;
+        pub mod wheel;
     }
 
     mod ss {
