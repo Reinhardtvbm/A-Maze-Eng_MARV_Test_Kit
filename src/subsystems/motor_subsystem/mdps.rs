@@ -1,4 +1,6 @@
-use crate::{components::packet, subsystems::motor_subsystem::wheel::Wheels};
+use crate::{
+    components::adjacent_bytes::AdjacentBytes, subsystems::motor_subsystem::wheel::Wheels,
+};
 use std::rc::Rc;
 
 use crate::components::{
@@ -94,33 +96,78 @@ impl Mdps {
                                 self.state = SystemState::Idle;
                             }
                         }
-                        ControlByte::MazeNavInstructions => match packet.dec() {
-                            0 => {
-                                self.wheels
-                                    .set_left_wheel_speed(self.operational_velocity as i16);
-                                self.wheels
-                                    .set_right_wheel_speed(self.operational_velocity as i16);
-                            }
-                            1 => {
-                                self.wheels
-                                    .set_left_wheel_speed(-(self.operational_velocity as i16));
-                                self.wheels
-                                    .set_right_wheel_speed(-(self.operational_velocity as i16));
-                            }
-                            2 => {
-                                self.wheels
-                                    .set_left_wheel_speed(-(self.operational_velocity as i16));
-                                self.wheels
-                                    .set_right_wheel_speed(self.operational_velocity as i16);
-                            }
-                            3 => {
-                                self.wheels
-                                    .set_left_wheel_speed(self.operational_velocity as i16);
-                                self.wheels
-                                    .set_right_wheel_speed(-(self.operational_velocity as i16));
-                            }
-                            _ => (),
-                        },
+                        ControlByte::MazeNavInstructions => {
+                            match packet.dec() {
+                                0 => {
+                                    self.wheels
+                                        .set_left_wheel_speed(self.operational_velocity as i16);
+                                    self.wheels
+                                        .set_right_wheel_speed(self.operational_velocity as i16);
+                                }
+                                1 => {
+                                    self.wheels
+                                        .set_left_wheel_speed(-(self.operational_velocity as i16));
+                                    self.wheels
+                                        .set_right_wheel_speed(-(self.operational_velocity as i16));
+                                }
+                                2 => {
+                                    self.wheels
+                                        .set_left_wheel_speed(-(self.operational_velocity as i16));
+                                    self.wheels
+                                        .set_right_wheel_speed(self.operational_velocity as i16);
+                                }
+                                3 => {
+                                    self.wheels
+                                        .set_left_wheel_speed(self.operational_velocity as i16);
+                                    self.wheels
+                                        .set_right_wheel_speed(-(self.operational_velocity as i16));
+                                }
+                                _ => (),
+                            };
+
+                            self.wheels.update_distance();
+
+                            // write battery level (no longer required as of 2022. i.e just send 0's)
+                            self.write(&mut [161, 0, 0, 0]);
+
+                            // write rotation
+                            let rotation = self.wheels.get_rotation();
+
+                            let rotation_bytes = AdjacentBytes::from(rotation);
+
+                            self.write(&mut [
+                                162,
+                                rotation_bytes.get_lsb(),
+                                rotation_bytes.get_msb(),
+                                match self.wheels.left_rotation() {
+                                    true => 2,
+                                    false => 3,
+                                },
+                            ]);
+
+                            // write speed
+                            self.write(&mut [
+                                163,
+                                self.wheels.get_left_wheel_speed(),
+                                self.wheels.get_right_wheel_speed(),
+                                match self.wheels.going_forward() {
+                                    true => 0,
+                                    false => 1,
+                                },
+                            ]);
+
+                            // write distance
+                            let distance = self.wheels.get_distance();
+
+                            let distance_bytes = AdjacentBytes::from(distance);
+
+                            self.write(&mut [
+                                164,
+                                distance_bytes.get_lsb(),
+                                distance_bytes.get_msb(),
+                                0,
+                            ]);
+                        }
                         ControlByte::MazeEndOfMaze => self.state = SystemState::Idle,
                         _ => (),
                     }

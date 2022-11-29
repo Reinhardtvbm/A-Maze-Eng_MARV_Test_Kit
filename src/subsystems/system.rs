@@ -34,6 +34,7 @@ impl System {
     pub fn run(&mut self) {
         for _i in 0..3 {
             self.snc.run();
+            self.mdps.run();
         }
     }
 }
