@@ -35,7 +35,7 @@ impl Ss {
 impl BufferUser for Ss {
     fn write(&mut self, data: &mut [u8; 4]) {
         match self.port.as_mut() {
-            Some(port) => port.write(&data).expect("Could not write to port."),
+            Some(port) => port.write(data).expect("Could not write to port."),
             None => {
                 let write_data = *data;
 

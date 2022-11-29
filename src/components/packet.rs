@@ -18,7 +18,7 @@ impl Packet {
 
     pub fn control_byte(&self) -> ControlByte {
         ControlByte::from(self.bytes[0])
-            .expect(format!("{} is not a valid control byte", self.bytes[0]).as_str())
+            .unwrap_or_else(|_| panic!("{} is not a valid control byte", self.bytes[0]))
     }
 
     pub fn dat1(&self) -> u8 {

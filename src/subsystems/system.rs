@@ -2,9 +2,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::components::buffer::Buffer;
-use crate::subsystems::mdps::mdps::Mdps;
-use crate::subsystems::snc::snc::Snc;
-use crate::subsystems::ss::ss::Ss;
+use crate::subsystems::motor_subsystem::mdps::Mdps;
+use crate::subsystems::sensor_subsystem::ss::Ss;
+use crate::subsystems::state_navigation::snc::Snc;
 
 /*
 The bread and butter of the program:

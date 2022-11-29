@@ -29,9 +29,9 @@ impl ComPort {
         let mut buffer = [0_u8; 4];
 
         if self.serial_port.read(&mut buffer).is_ok() {
-            return Ok(Packet::from(buffer));
+            Ok(Packet::from(buffer))
         } else {
-            return Err(ComPortError::ReadFail);
+            Err(ComPortError::ReadFail)
         }
     }
 
@@ -45,7 +45,7 @@ impl ComPort {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ControlByte {
     IdleButton,
     Calibrated,

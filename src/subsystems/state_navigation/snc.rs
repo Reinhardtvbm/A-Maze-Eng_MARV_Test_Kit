@@ -2,7 +2,7 @@ use crate::components::buffer::{BufferUser, Get, SharedBuffer};
 use crate::components::comm_port::{ComPort, ControlByte};
 use crate::components::packet::Packet;
 use crate::components::state::SystemState;
-use crate::subsystems::snc::navcon::{NavCon, NavConState};
+use crate::subsystems::state_navigation::navcon::{NavCon, NavConState};
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -76,8 +76,7 @@ impl Snc {
 
                 for (index, byte) in expected_sequence.iter().enumerate() {
                     while packets[index].control_byte() != *byte {
-                        packets[index] =
-                            Packet::from(self.read().expect("Failed to read input data in Maze"));
+                        packets[index] = self.read().expect("Failed to read input data in Maze");
                     }
                 }
 
@@ -105,7 +104,9 @@ impl Snc {
                 }
             }
             SystemState::Sos => {
-                while Packet::from(self.read().expect("Failed to read input data in Maze"))
+                while self
+                    .read()
+                    .expect("Failed to read input data in Maze")
                     .control_byte()
                     != ControlByte::SosSpeed
                 { /* Do Noting */ }
@@ -121,7 +122,7 @@ impl Snc {
 impl BufferUser for Snc {
     fn write(&mut self, data: &mut [u8; 4]) {
         match self.port.as_mut() {
-            Some(port) => port.write(&data).expect("Could not write to port."),
+            Some(port) => port.write(data).expect("Could not write to port."),
             None => {
                 let write_data = *data;
 

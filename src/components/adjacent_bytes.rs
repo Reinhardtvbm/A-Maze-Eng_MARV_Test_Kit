@@ -22,6 +22,6 @@ impl From<u16> for AdjacentBytes {
 
 impl From<AdjacentBytes> for u16 {
     fn from(number: AdjacentBytes) -> Self {
-        return ((number.0 as u16) << 8) + number.1 as u16;
+        ((number.0 as u16) << 8) + number.1 as u16
     }
 }

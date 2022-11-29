@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 struct Wheels {
     left_speed: i16,
@@ -21,8 +21,8 @@ impl Wheels {
             axle_dist: axle_distance,
             time: SystemTime::now(),
         }
-    } 
-    
+    }
+
     pub fn set_left_wheel_speed(&mut self, speed: i16) {
         self.left_speed = speed;
     }

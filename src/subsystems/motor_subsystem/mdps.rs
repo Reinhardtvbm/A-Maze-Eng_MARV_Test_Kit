@@ -3,11 +3,11 @@ use std::rc::Rc;
 use crate::components::{
     buffer::{BufferUser, Get, SharedBuffer},
     comm_port::{ComPort, ControlByte},
-    packet::{self, Packet},
+    packet::Packet,
     state::SystemState,
 };
 
-use crate::subsystems::mdps::wheel;
+use crate::subsystems::motor_subsystem::wheel;
 
 #[derive(Debug)]
 pub struct Mdps {
@@ -40,20 +40,21 @@ impl Mdps {
 
     pub fn run(&mut self) {
         match self.state {
-            SystemState::Idle => match self.read() {
-                /* Idle things */
-                Some(packet) => {
+            SystemState::Idle =>
+            /* Idle things */
+            {
+                if let Some(packet) = self.read() {
                     if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
                         self.operational_velocity = packet.dat0();
                         self.state = SystemState::Calibrate;
                     }
                 }
-                None => (),
-            },
-            SystemState::Calibrate => {
-                /* Calibration things */
-                match self.read() {
-                    Some(packet) => match packet.control_byte() {
+            }
+            SystemState::Calibrate =>
+            /* Calibration things */
+            {
+                if let Some(packet) = self.read() {
+                    match packet.control_byte() {
                         ControlByte::Calibrated => {
                             self.write(&mut [
                                 u8::from(ControlByte::CalibrateOperationalVelocity),
@@ -75,14 +76,13 @@ impl Mdps {
                             }
                         }
                         _ => (),
-                    },
-                    None => (),
+                    }
                 }
             }
             SystemState::Maze => {
                 /* Maze things */
-                match self.read() {
-                    Some(packet) => match packet.control_byte() {
+                if let Some(packet) = self.read() {
+                    match packet.control_byte() {
                         ControlByte::MazeClapSnap => todo!(),
                         ControlByte::MazeButton => todo!(),
                         ControlByte::MazeNavInstructions => match packet.dec() {
@@ -94,19 +94,17 @@ impl Mdps {
                         },
                         ControlByte::MazeEndOfMaze => self.state = SystemState::Idle,
                         _ => (),
-                    },
-                    None => (),
+                    }
                 }
             }
             SystemState::Sos => { /* SOS things */ }
         }
     }
 }
-
 impl BufferUser for Mdps {
     fn write(&mut self, data: &mut [u8; 4]) {
         match self.port.as_mut() {
-            Some(port) => port.write(&data).expect("Could not write to port."),
+            Some(port) => port.write(data).expect("Could not write to port."),
             None => {
                 let write_data = *data;
 

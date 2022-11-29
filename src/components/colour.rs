@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Colour {
     White = 0b000,
     Red = 0b001,
@@ -59,7 +59,7 @@ impl From<u16> for Colours {
                 Colour::from(((colour_word & 0b0000111000000000) >> 9) as u8),
                 Colour::from(((colour_word & 0b0000000111000000) >> 6) as u8),
                 Colour::from(((colour_word & 0b0000000000111000) >> 3) as u8),
-                Colour::from(((colour_word & 0b0000000000000111) >> 0) as u8),
+                Colour::from((colour_word & 0b0000000000000111) as u8),
             ],
             index: 0,
         }

@@ -11,17 +11,17 @@ mod components {
 }
 
 mod subsystems {
-    mod snc {
+    mod state_navigation {
         pub mod navcon;
         pub mod snc;
     }
 
-    mod mdps {
+    mod motor_subsystem {
         pub mod mdps;
         pub mod wheel;
     }
 
-    mod ss {
+    mod sensor_subsystem {
         pub mod ss;
     }
 

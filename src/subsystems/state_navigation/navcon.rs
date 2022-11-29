@@ -6,7 +6,7 @@ use crate::components::{
     packet::Packet,
 };
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum NavConState {
     Forward,
     Reverse,
@@ -43,8 +43,8 @@ impl NavCon {
             current_state: NavConState::Forward,
             previous_state: NavConState::Forward,
             next_state: NavConState::Forward,
-            output_rotation: 0 as u16,
-            reference_distance: 0 as u16,
+            output_rotation: 0,
+            reference_distance: 0,
             previously_encountered_colour: Colour::White,
         }
     }
