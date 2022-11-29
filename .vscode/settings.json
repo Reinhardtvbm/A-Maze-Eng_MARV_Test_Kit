@@ -1,0 +1,8 @@
+{
+  "[rust]": {
+    "editor.minimap.enabled": false,
+    "editor.fontSize": 12,
+    "editor.suggest.showInlineDetails": false,
+    "editor.suggest.showIcons": false
+  }
+}

@@ -1,6 +1,7 @@
 use std::time::SystemTime;
 
-struct Wheels {
+#[derive(Debug)]
+pub struct Wheels {
     left_speed: i16,
     right_speed: i16,
     left_distance: f32,

@@ -64,6 +64,7 @@ pub enum ControlByte {
     MazeColours,
     MazeIncidence,
     SosSpeed,
+    SosClapSnap,
 }
 
 impl ControlByte {
@@ -85,6 +86,7 @@ impl ControlByte {
             179 => Ok(Self::MazeEndOfMaze),
             177 => Ok(Self::MazeColours),
             178 => Ok(Self::MazeIncidence),
+            208 => Ok(Self::SosClapSnap),
             228 => Ok(Self::SosSpeed),
             _ => Err(()),
         }
@@ -120,6 +122,7 @@ impl From<ControlByte> for u8 {
             ControlByte::MazeEndOfMaze => 179,
             ControlByte::MazeColours => 177,
             ControlByte::MazeIncidence => 178,
+            ControlByte::SosClapSnap => 208,
             ControlByte::SosSpeed => 228,
         }
     }
