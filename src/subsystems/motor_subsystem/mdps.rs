@@ -10,13 +10,32 @@ use crate::components::{
     state::SystemState,
 };
 
+/**
+    # Motor-driver and Power Subsystem (MDPS) struct
+    Provides a way to emulate the MDPS
+**/
 #[derive(Debug)]
 pub struct Mdps {
+    /// A shared buffer of type Rc<RefCell<_>>
+    /// which is written to by the other two subsystems
     read_buffer: SharedBuffer,
+    /// The shared buffers of the other two subsystems
+    /// for the MDPS to send its data to
     write_buffers: [SharedBuffer; 2],
+    /// The ComPort which the MDPS is connected to
+    /// ability to run the system fully automatically
+    /// is planned, to in this case, none of the subsystem
+    /// structs will have a ComPort.
+    /// `ComPort` is an abstraction for `SerialPort` from
+    /// the Rust serialport crete
     port: Option<ComPort>,
+    /// Wheels is a struct that contains data for speed, distance,
+    /// and rotation. It facilitates some of the calculations
+    /// required to keep track of this data in autonomous mode
     wheels: Wheels,
+    /// The state that the full is in
     state: SystemState,
+    /// The desired operating velocity during maze navigation
     operational_velocity: u8,
 }
 
