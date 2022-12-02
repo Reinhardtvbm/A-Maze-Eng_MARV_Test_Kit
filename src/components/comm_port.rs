@@ -47,6 +47,7 @@ impl ComPort {
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum ControlByte {
+    Zero,
     IdleButton,
     Calibrated,
     CalibrateOperationalVelocity,
@@ -70,6 +71,7 @@ pub enum ControlByte {
 impl ControlByte {
     pub fn from(byte: u8) -> Result<Self, ()> {
         match byte {
+            0 => Ok(Self::Zero),
             16 => Ok(Self::IdleButton),
             112 => Ok(Self::Calibrated),
             96 => Ok(Self::CalibrateOperationalVelocity),
@@ -106,6 +108,7 @@ impl fmt::Debug for ComPort {
 impl From<ControlByte> for u8 {
     fn from(p: ControlByte) -> Self {
         match p {
+            ControlByte::Zero => 0,
             ControlByte::IdleButton => 16,
             ControlByte::Calibrated => 112,
             ControlByte::CalibrateOperationalVelocity => 96,

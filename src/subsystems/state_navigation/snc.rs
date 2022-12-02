@@ -37,7 +37,7 @@ impl Snc {
     pub fn run(&mut self) {
         match self.state {
             SystemState::Idle => {
-                // write touch detected to port
+                // write touch detected to port, with default ideal operational velocity of 100 mm/s
                 self.write(&mut [16, 1, 100, 0]);
 
                 // go to calibrate state
@@ -49,9 +49,6 @@ impl Snc {
                 Some(data) => {
                     if data.control_byte() == ControlByte::CalibrateColours {
                         self.write(&mut [80, 1, 0, 0]);
-                        self.write(&mut [145, 0, 0, 0]);
-                        self.write(&mut [146, 0, 0, 0]);
-                        self.write(&mut [147, 100, 100, 0]);
 
                         self.state = SystemState::Maze;
                     }
@@ -63,22 +60,7 @@ impl Snc {
 
                 self.write(&mut [146, 0, 0, 0]);
 
-                let expected_sequence = [
-                    ControlByte::MazeBatteryLevel,
-                    ControlByte::MazeRotation,
-                    ControlByte::MazeSpeeds,
-                    ControlByte::MazeRotation,
-                    ControlByte::MazeColours,
-                    ControlByte::MazeIncidence,
-                ];
-
                 let mut packets = Vec::from([Packet::new(0, 0, 0, 0); 6]);
-
-                for (index, byte) in expected_sequence.iter().enumerate() {
-                    while packets[index].control_byte() != *byte {
-                        packets[index] = self.read().expect("Failed to read input data in Maze");
-                    }
-                }
 
                 packets.remove(0);
 
@@ -100,6 +82,22 @@ impl Snc {
                         let dat0 = (self.navcon.output_rotation & 0x00FF) as u8;
 
                         self.write(&mut [147, dat1, dat0, 3]);
+                    } // the order in which the control bytes for the incoming packets are
+                      // expected to be received
+                }
+
+                let expected_sequence = [
+                    ControlByte::MazeBatteryLevel,
+                    ControlByte::MazeRotation,
+                    ControlByte::MazeSpeeds,
+                    ControlByte::MazeRotation,
+                    ControlByte::MazeColours,
+                    ControlByte::MazeIncidence,
+                ];
+
+                for (index, byte) in expected_sequence.iter().enumerate() {
+                    while packets[index].control_byte() != *byte {
+                        packets[index] = self.read().expect("Failed to read input data in Maze");
                     }
                 }
             }

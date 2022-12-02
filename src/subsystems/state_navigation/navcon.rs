@@ -181,3 +181,13 @@ impl NavCon {
         }
     }
 }
+
+impl Default for WorkingData {
+    fn default() -> Self {
+        Self {
+            colours: Colours::new(),
+            incidence: 0,
+            distance: 0,
+        }
+    }
+}
