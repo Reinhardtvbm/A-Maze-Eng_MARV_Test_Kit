@@ -175,6 +175,9 @@ impl Mdps {
             }
             SystemState::Sos => {
                 /* SOS things */
+                self.wheels.set_left_wheel_speed(0);
+                self.wheels.set_right_wheel_speed(0);
+
                 self.write(&mut [u8::from(ControlByte::SosSpeed), 0, 0, 0]);
 
                 if let Some(packet) = self.read() {

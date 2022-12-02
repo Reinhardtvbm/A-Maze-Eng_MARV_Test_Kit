@@ -27,29 +27,35 @@ impl Get for SharedBuffer {
     }
 }
 
+/// A simple struct that acts an an abstraction for
+/// a buffer. _Could become replaced by channels_ if
+/// multithreading is implemented
 #[derive(Debug, Clone)]
 pub struct Buffer {
-    heap: VecDeque<Packet>,
+    queue: VecDeque<Packet>,
 }
 
 impl Buffer {
     pub fn new() -> Self {
         Self {
-            heap: VecDeque::new(),
+            queue: VecDeque::new(),
         }
     }
 
     pub fn write(&mut self, packet: Packet) {
-        self.heap.push_front(packet);
+        self.queue.push_front(packet);
 
         println!("writing to buffer");
     }
 
     pub fn read(&mut self) -> Option<Packet> {
-        self.heap.pop_back()
+        self.queue.pop_back()
     }
 }
 
+/// A trait which defines the shared write and read
+/// behaviours of the three subsystems `Snc`, `Mdps`, and
+/// `Ss`
 pub trait BufferUser {
     fn write(&mut self, data: &mut [u8; 4]);
     fn read(&mut self) -> Option<Packet>;
