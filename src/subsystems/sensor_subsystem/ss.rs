@@ -2,8 +2,9 @@ use std::rc::Rc;
 
 use crate::components::{
     buffer::{BufferUser, Get, SharedBuffer},
-    comm_port::ComPort,
+    comm_port::{ComPort, ControlByte},
     packet::Packet,
+    state::SystemState,
 };
 
 #[derive(Debug)]
@@ -11,6 +12,7 @@ pub struct Ss {
     read_buffer: SharedBuffer,
     write_buffers: [SharedBuffer; 2],
     port: Option<ComPort>,
+    state: SystemState,
 }
 
 impl Ss {
@@ -28,6 +30,61 @@ impl Ss {
             read_buffer: Rc::clone(r_buffer),
             write_buffers: [Rc::clone(w_buffers[0]), Rc::clone(w_buffers[1])],
             port: comm_port,
+            state: SystemState::Idle,
+        }
+    }
+
+    pub fn run(&mut self) {
+        match self.state {
+            SystemState::Idle => {
+                /* Idle things */
+                if let Some(packet) = self.read() {
+                    if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
+                        self.state = SystemState::Calibrate;
+                    }
+                }
+            }
+            SystemState::Calibrate => {
+                self.write(&mut [112, 0, 0, 0]);
+
+                if let Some(packet) = self.read() {
+                    if packet.control_byte() == ControlByte::CalibrateBatteryLevel {
+                        self.write(&mut [113, 0, 0, 0]);
+                    } else if packet.control_byte() == ControlByte::CalibrateButton
+                        && packet.dat1() == 1
+                    {
+                        self.state = SystemState::Maze;
+                    }
+                }
+            }
+            SystemState::Maze => {
+                if let Some(packet) = self.read() {
+                    match packet.control_byte() {
+                        ControlByte::MazeClapSnap => {
+                            if packet.dat1() == 1 {
+                                self.state = SystemState::Sos;
+                            }
+                        }
+                        ControlByte::MazeButton => {
+                            if packet.dat1() == 1 {
+                                self.state = SystemState::Idle;
+                            }
+                        }
+                        ControlByte::MazeDistance => {
+                            todo!();
+
+                            /*
+                                - get colours somehow from GUI
+                                - test for end of maze, else:
+                                    - write colours
+                                    - write angle of incidence
+                            */
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            SystemState::Sos => todo!(),
         }
     }
 }

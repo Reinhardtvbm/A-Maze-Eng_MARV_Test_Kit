@@ -35,6 +35,7 @@ impl System {
         for _i in 0..3 {
             self.snc.run();
             self.mdps.run();
+            self.ss.run();
         }
     }
 }
