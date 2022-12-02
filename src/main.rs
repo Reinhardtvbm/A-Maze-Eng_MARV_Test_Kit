@@ -1,46 +1,39 @@
-// mod components {
-//     pub mod colour;
-//     pub mod comm_port;
-// }
+use crate::subsystems::system::System;
 
-// mod subsystems {
-//     pub mod mdps;
-//     //pub mod snc;
-//     pub mod ss;
-//     mod snc_components {
-//         pub mod navcon;
-//     }
-// }
-
-use gui::Counter;
-use iced::{Sandbox, Settings};
-use maze::graph::Graph;
-
-mod gui;
-
-mod maze {
-    pub mod graph;
-    pub mod maze;
+mod components {
+    pub mod adjacent_bytes;
+    pub mod buffer;
+    pub mod colour;
+    pub mod comm_port;
+    pub mod constants;
+    pub mod packet;
+    pub mod state;
 }
 
-fn main() -> iced::Result {
-    // let mut new_graph: Graph<u8> = Graph::new();
+mod subsystems {
+    mod state_navigation {
+        pub mod navcon;
+        pub mod snc;
+    }
 
-    // new_graph.add_node(1);
-    // println!("==================================");
-    // new_graph.add_node(2);
-    // println!("==================================");
-    // new_graph.add_node(2);
-    // println!("==================================");
-    // new_graph.add_node(2);
-    // println!("==================================");
-    // new_graph.add_node(2);
-    // println!("==================================");
-    // new_graph.add_node(2);
+    mod motor_subsystem {
+        pub mod mdps;
+        pub mod wheel;
+    }
 
-    // println!("{}", new_graph.get_node(1).unwrap());
+    mod sensor_subsystem {
+        pub mod ss;
+    }
 
-    Counter::run(Settings::default())?;
+    pub mod system;
+}
 
-    Ok(())
+fn main() {
+    println!("Hello MARV!");
+
+    let mut system = System::new();
+
+    system.run();
+
+    println!("{:?}", system);
 }

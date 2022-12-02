@@ -1,5 +1,10 @@
+use std::fmt::{self, Debug};
+
 use serialport::SerialPort;
 
+use super::packet::Packet;
+
+#[derive(Debug)]
 pub enum ComPortError {
     ReadFail,
     WriteFail,
@@ -20,13 +25,13 @@ impl ComPort {
     }
 
     /// reads 4 bytes from the serial port
-    pub fn read(&mut self) -> Result<[u8; 4], ComPortError> {
+    pub fn read(&mut self) -> Result<Packet, ComPortError> {
         let mut buffer = [0_u8; 4];
 
         if self.serial_port.read(&mut buffer).is_ok() {
-            return Ok(buffer);
+            Ok(Packet::from(buffer))
         } else {
-            return Err(ComPortError::ReadFail);
+            Err(ComPortError::ReadFail)
         }
     }
 
@@ -40,8 +45,9 @@ impl ComPort {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ControlByte {
+    Zero,
     IdleButton,
     Calibrated,
     CalibrateOperationalVelocity,
@@ -58,11 +64,14 @@ pub enum ControlByte {
     MazeEndOfMaze,
     MazeColours,
     MazeIncidence,
+    SosSpeed,
+    SosClapSnap,
 }
 
 impl ControlByte {
     pub fn from(byte: u8) -> Result<Self, ()> {
         match byte {
+            0 => Ok(Self::Zero),
             16 => Ok(Self::IdleButton),
             112 => Ok(Self::Calibrated),
             96 => Ok(Self::CalibrateOperationalVelocity),
@@ -79,29 +88,45 @@ impl ControlByte {
             179 => Ok(Self::MazeEndOfMaze),
             177 => Ok(Self::MazeColours),
             178 => Ok(Self::MazeIncidence),
+            208 => Ok(Self::SosClapSnap),
+            228 => Ok(Self::SosSpeed),
             _ => Err(()),
         }
     }
 
-    pub fn to(byte: Self) -> Result<u8, ()> {
-        match byte {
-            ControlByte::IdleButton => Ok(16),
-            ControlByte::Calibrated => Ok(112),
-            ControlByte::CalibrateOperationalVelocity => Ok(96),
-            ControlByte::CalibrateBatteryLevel => Ok(97),
-            ControlByte::CalibrateColours => Ok(113),
-            ControlByte::CalibrateButton => Ok(80),
-            ControlByte::MazeClapSnap => Ok(145),
-            ControlByte::MazeButton => Ok(146),
-            ControlByte::MazeNavInstructions => Ok(147),
-            ControlByte::MazeBatteryLevel => Ok(161),
-            ControlByte::MazeRotation => Ok(162),
-            ControlByte::MazeSpeeds => Ok(163),
-            ControlByte::MazeDistance => Ok(164),
-            ControlByte::MazeEndOfMaze => Ok(179),
-            ControlByte::MazeColours => Ok(177),
-            ControlByte::MazeIncidence => Ok(178),
-            _ => Err(()),
+    // pub fn to(byte: Self) -> Result<u8, ()> {
+    //
+    // }
+}
+
+impl fmt::Debug for ComPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.serial_port.name().unwrap())
+    }
+}
+
+impl From<ControlByte> for u8 {
+    fn from(p: ControlByte) -> Self {
+        match p {
+            ControlByte::Zero => 0,
+            ControlByte::IdleButton => 16,
+            ControlByte::Calibrated => 112,
+            ControlByte::CalibrateOperationalVelocity => 96,
+            ControlByte::CalibrateBatteryLevel => 97,
+            ControlByte::CalibrateColours => 113,
+            ControlByte::CalibrateButton => 80,
+            ControlByte::MazeClapSnap => 145,
+            ControlByte::MazeButton => 146,
+            ControlByte::MazeNavInstructions => 147,
+            ControlByte::MazeBatteryLevel => 161,
+            ControlByte::MazeRotation => 162,
+            ControlByte::MazeSpeeds => 163,
+            ControlByte::MazeDistance => 164,
+            ControlByte::MazeEndOfMaze => 179,
+            ControlByte::MazeColours => 177,
+            ControlByte::MazeIncidence => 178,
+            ControlByte::SosClapSnap => 208,
+            ControlByte::SosSpeed => 228,
         }
     }
 }

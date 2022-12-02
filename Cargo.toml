@@ -1,5 +1,5 @@
 [package]
-name = "EPR320_Dev_Test"
+name = "epr320_dev_test"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 serialport = "4.2.0"
-iced = "0.5"
