@@ -28,12 +28,14 @@ mod subsystems {
     pub mod system;
 }
 
+mod gui {
+    pub mod gui;
+}
+
 fn main() {
     println!("Hello MARV!");
 
     let mut system = System::new();
 
     system.run();
-
-    println!("{:?}", system);
 }

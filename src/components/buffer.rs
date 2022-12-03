@@ -43,13 +43,18 @@ impl Buffer {
     }
 
     pub fn write(&mut self, packet: Packet) {
+        println!("\nbuffer: {:?} before write", self.queue);
         self.queue.push_front(packet);
-
-        println!("writing to buffer");
+        println!("\nbuffer: {:?} after write", self.queue);
     }
 
     pub fn read(&mut self) -> Option<Packet> {
-        self.queue.pop_back()
+        println!("\nbuffer: {:?} before read", self.queue);
+        let p = self.queue.pop_back();
+
+        println!("\nbuffer: {:?} after read", self.queue);
+
+        p
     }
 }
 

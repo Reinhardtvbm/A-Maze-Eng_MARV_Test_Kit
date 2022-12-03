@@ -38,6 +38,8 @@ impl Ss {
         match self.state {
             SystemState::Idle => {
                 /* Idle things */
+                println!("SS in idle");
+
                 if let Some(packet) = self.read() {
                     if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
                         self.state = SystemState::Calibrate;
@@ -45,6 +47,7 @@ impl Ss {
                 }
             }
             SystemState::Calibrate => {
+                println!("SS in calibrate");
                 self.write(&mut [112, 0, 0, 0]);
 
                 if let Some(packet) = self.read() {
@@ -58,6 +61,8 @@ impl Ss {
                 }
             }
             SystemState::Maze => {
+                println!("SS in maze");
+
                 if let Some(packet) = self.read() {
                     match packet.control_byte() {
                         ControlByte::MazeClapSnap => {
@@ -94,6 +99,8 @@ impl BufferUser for Ss {
         match self.port.as_mut() {
             Some(port) => port.write(data).expect("Could not write to port."),
             None => {
+                println!("SS writing {:?}", data);
+
                 let write_data = *data;
 
                 self.write_buffers[0]
@@ -107,6 +114,8 @@ impl BufferUser for Ss {
     }
 
     fn read(&mut self) -> Option<Packet> {
+        println!("SS reading buffer");
+
         match self.port.as_mut() {
             Some(com_port) => Some(com_port.read().expect("Failed to read from port.")),
             None => self.read_buffer.get_mut().read(),

@@ -122,6 +122,8 @@ impl BufferUser for Snc {
         match self.port.as_mut() {
             Some(port) => port.write(data).expect("Could not write to port."),
             None => {
+                println!("SNC writing {:?}", data);
+
                 let write_data = *data;
 
                 self.write_buffers[0]
@@ -135,6 +137,8 @@ impl BufferUser for Snc {
     }
 
     fn read(&mut self) -> Option<Packet> {
+        println!("SNC reading buffer");
+
         match self.port.as_mut() {
             Some(com_port) => Some(com_port.read().expect("Failed to read from port.")),
             None => self.read_buffer.get_mut().read(),

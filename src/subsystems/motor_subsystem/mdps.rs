@@ -65,6 +65,8 @@ impl Mdps {
             SystemState::Idle =>
             /* Idle things */
             {
+                println!("MDPS in idle");
+
                 if let Some(packet) = self.read() {
                     if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
                         self.operational_velocity = packet.dat0();
@@ -75,6 +77,8 @@ impl Mdps {
             SystemState::Calibrate =>
             /* Calibration things */
             {
+                println!("MDPS in calibrate");
+
                 if let Some(packet) = self.read() {
                     match packet.control_byte() {
                         ControlByte::Calibrated => {
@@ -103,6 +107,8 @@ impl Mdps {
             }
             SystemState::Maze => {
                 /* Maze things */
+                println!("MDPS in maze");
+
                 if let Some(packet) = self.read() {
                     match packet.control_byte() {
                         ControlByte::MazeClapSnap => {
@@ -194,6 +200,8 @@ impl Mdps {
             }
             SystemState::Sos => {
                 /* SOS things */
+                println!("MDPS in SOS");
+
                 self.wheels.set_left_wheel_speed(0);
                 self.wheels.set_right_wheel_speed(0);
 
@@ -214,6 +222,8 @@ impl BufferUser for Mdps {
         match self.port.as_mut() {
             Some(port) => port.write(data).expect("Could not write to port."),
             None => {
+                println!("MDPS writing {:?}", data);
+
                 let write_data = *data;
 
                 self.write_buffers[0]
@@ -227,6 +237,8 @@ impl BufferUser for Mdps {
     }
 
     fn read(&mut self) -> Option<Packet> {
+        println!("MDPS reading buffer");
+
         match self.port.as_mut() {
             Some(com_port) => Some(com_port.read().expect("Failed to read from port.")),
             None => self.read_buffer.get_mut().read(),
