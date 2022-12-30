@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Colour {
     White = 0b000,
     Red = 0b001,
@@ -75,13 +76,7 @@ impl Colours {
     }
 
     pub fn all_white(&self) -> bool {
-        for colour in self.colours {
-            if colour != Colour::White {
-                return false;
-            }
-        }
-
-        true
+        self.colours.iter().any(|col| *col != Colour::White)
     }
 }
 
@@ -89,15 +84,12 @@ impl Iterator for Colours {
     type Item = Colour;
 
     fn next(&mut self) -> Option<Colour> {
-        let result = match self.index {
-            0 => Some(self.colours[0]),
-            1 => Some(self.colours[1]),
-            2 => Some(self.colours[2]),
-            3 => Some(self.colours[3]),
-            4 => Some(self.colours[4]),
-            _ => None,
-        };
         self.index += 1;
-        result
+
+        if self.index <= 4 {
+            Some(self.colours[self.index])
+        } else {
+            None
+        }
     }
 }

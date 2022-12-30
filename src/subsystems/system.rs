@@ -25,9 +25,9 @@ impl System {
         let mdps_buffer = Rc::new(RefCell::new(Buffer::new()));
 
         Self {
-            snc: Snc::new([&ss_buffer, &mdps_buffer], &snc_buffer, false),
-            ss: Ss::new([&snc_buffer, &mdps_buffer], &ss_buffer, false),
-            mdps: Mdps::new([&ss_buffer, &snc_buffer], &mdps_buffer, false),
+            snc: Snc::new((&ss_buffer, &mdps_buffer), &snc_buffer, false),
+            ss: Ss::new((&snc_buffer, &mdps_buffer), &ss_buffer, false),
+            mdps: Mdps::new((&ss_buffer, &snc_buffer), &mdps_buffer, false),
         }
     }
 

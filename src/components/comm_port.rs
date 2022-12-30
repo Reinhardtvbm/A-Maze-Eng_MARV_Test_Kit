@@ -10,26 +10,28 @@ pub enum ComPortError {
     WriteFail,
 }
 
-pub struct ComPort {
-    serial_port: Box<dyn SerialPort>,
-}
+pub struct ComPort(Box<dyn SerialPort>);
 
 impl ComPort {
     /// will create a new instance of an a-maze-eng-MARV com port
     pub fn new(comm_port_number: String, baud_rate: u32) -> Self {
-        Self {
-            serial_port: serialport::new(format!("COM{}", comm_port_number), baud_rate)
+        Self(
+            serialport::new(format!("COM{}", comm_port_number), baud_rate)
                 .open()
-                .expect("Failed to open port"),
-        }
+                .unwrap_or_else(|_| panic!("Failed to open COM{}", comm_port_number)),
+        )
     }
 
     /// reads 4 bytes from the serial port
     pub fn read(&mut self) -> Result<Packet, ComPortError> {
-        let mut buffer = [0_u8; 4];
+        let mut buffer = [0; 4];
 
-        if self.serial_port.read(&mut buffer).is_ok() {
-            Ok(Packet::from(buffer))
+        if let Ok(no_bytes) = self.0.read(&mut buffer) {
+            if no_bytes >= 4 {
+                Ok(Packet::from(buffer))
+            } else {
+                Err(ComPortError::ReadFail)
+            }
         } else {
             Err(ComPortError::ReadFail)
         }
@@ -37,7 +39,7 @@ impl ComPort {
 
     /// writes 4 bytes to the serial port
     pub fn write(&mut self, packet: &[u8; 4]) -> Result<(), ComPortError> {
-        if self.serial_port.write(packet).is_ok() {
+        if self.0.write(packet).is_ok() {
             Ok(())
         } else {
             Err(ComPortError::WriteFail)
@@ -99,7 +101,7 @@ impl ControlByte {
 
 impl fmt::Debug for ComPort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.serial_port.name().unwrap())
+        write!(f, "{}", self.0.name().unwrap())
     }
 }
 

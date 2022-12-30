@@ -16,7 +16,7 @@ pub struct Snc {
 
 impl Snc {
     pub fn new(
-        w_buffers: [&SharedBuffer; 2],
+        w_buffers: (&SharedBuffer, &SharedBuffer),
         r_buffer: &SharedBuffer,
         activate_port: bool,
     ) -> Self {
@@ -27,7 +27,7 @@ impl Snc {
 
         Self {
             read_buffer: Rc::clone(r_buffer),
-            write_buffers: [Rc::clone(w_buffers[0]), Rc::clone(w_buffers[1])],
+            write_buffers: [Rc::clone(w_buffers.0), Rc::clone(w_buffers.1)],
             state: SystemState::Idle,
             port: comm_port,
             navcon: NavCon::new(),

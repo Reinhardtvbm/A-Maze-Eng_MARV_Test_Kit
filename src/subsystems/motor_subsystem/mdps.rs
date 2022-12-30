@@ -40,8 +40,12 @@ pub struct Mdps {
 }
 
 impl Mdps {
+    /// Returns a new MDPS
+    ///
+    /// If the test kit is running with one or more real subsystems, commport will be Some(..), otherwise it
+    /// must be None
     pub fn new(
-        w_buffers: [&SharedBuffer; 2],
+        w_buffers: (&SharedBuffer, &SharedBuffer),
         r_buffer: &SharedBuffer,
         activate_port: bool,
     ) -> Self {
@@ -52,7 +56,7 @@ impl Mdps {
 
         Self {
             read_buffer: Rc::clone(r_buffer),
-            write_buffers: [Rc::clone(w_buffers[0]), Rc::clone(w_buffers[1])],
+            write_buffers: [Rc::clone(w_buffers.0), Rc::clone(w_buffers.1)],
             port: comm_port,
             wheels: Wheels::new(8.0),
             state: SystemState::Idle,

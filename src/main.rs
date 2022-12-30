@@ -28,12 +28,19 @@ mod subsystems {
     pub mod system;
 }
 
+mod gui {
+    pub mod entry_window;
+    pub mod gui;
+    pub mod window_stack;
+}
+
+use gui::gui::MARVApp;
+
 fn main() {
-    println!("Hello MARV!");
-
-    let mut system = System::new();
-
-    system.run();
-
-    println!("{:?}", system);
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(
+        "A-Maze-Eng-MARV Test Kit",
+        native_options,
+        Box::new(|cc| Box::new(MARVApp::new(cc))),
+    );
 }
