@@ -3,9 +3,8 @@ use std::collections::VecDeque;
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub enum Window {
-    Entry,
-    TestSelect,
-    Maze1,
+    Main,
+    NAVCONQtp1,
 }
 
 pub struct WindowHistory(VecDeque<Window>);

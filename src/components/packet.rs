@@ -1,6 +1,6 @@
 use super::comm_port::ControlByte;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Packet {
     bytes: [u8; 4],
 }

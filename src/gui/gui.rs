@@ -1,9 +1,13 @@
+extern crate eframe;
+
 use eframe::egui::{self, Response, Ui};
 
 use super::{
     entry_window::EntryWindow,
     window_stack::{Window, WindowHistory},
 };
+
+use super::test_windows::navcon::qtp1::paint_navcon_qtp_1;
 
 pub struct MARVApp {
     state: WindowHistory,
@@ -22,56 +26,100 @@ impl MARVApp {
         }
     }
 
-    fn paint_entry_window(&mut self, ui: &mut Ui) {
-        ui.heading("Sybsystem modes");
-        ui.separator();
-        ui.horizontal(|inner| {
-            let snc_button_str = format!("SNC: {}", self.entry_window.snc_mode());
-            let ss_button_str = format!("SS: {}", self.entry_window.ss_mode());
-            let mdps_button_str = format!("MDPS: {}", self.entry_window.mdps_mode());
+    fn paint_main_window(&mut self, ui: &mut Ui) {
+        ui.heading("Welcome to the EPR 320 developmental test kit!");
+        ui.add_space(8.0);
 
-            if inner.button(snc_button_str).clicked() {
-                self.entry_window.toggle_snc_mode();
-            }
+        // SNC tests
+        ui.group(|ui| {
+            ui.heading("SNC Tests");
 
-            if inner.button(ss_button_str).clicked() {
-                self.entry_window.toggle_ss_mode();
-            }
+            ui.add_space(4.0);
 
-            if inner.button(mdps_button_str).clicked() {
-                self.entry_window.toggle_mdps_mode();
-            }
+            ui.label("SNC");
+            ui.horizontal(|ui| {
+                if ui.button("QTP1").clicked() {}
+                if ui.button("QTP2").clicked() {}
+                if ui.button("QTP3").clicked() {}
+            });
+
+            ui.add_space(2.0);
+
+            ui.label("NAVCON");
+            ui.horizontal(|ui| {
+                if ui.button("QTP1").clicked() {
+                    self.state.push(Window::NAVCONQtp1);
+                }
+                if ui.button("QTP2").clicked() {}
+                if ui.button("QTP3").clicked() {}
+                if ui.button("QTP4").clicked() {}
+                if ui.button("QTP5").clicked() {}
+            });
         });
 
-        if ui.button("Done").clicked() {
-            self.state.push(Window::TestSelect);
-        }
+        ui.add_space(12.0);
+
+        // SS tests
+        ui.group(|ui| {
+            ui.heading("SS Tests");
+
+            ui.add_space(4.0);
+
+            ui.horizontal(|ui| {
+                if ui.button("QTP1").clicked() {}
+                if ui.button("QTP2").clicked() {}
+                if ui.button("QTP3").clicked() {}
+                if ui.button("QTP4").clicked() {}
+                if ui.button("QTP5").clicked() {}
+            });
+        });
+
+        ui.add_space(12.0);
+
+        // MDPS tests
+        ui.group(|ui| {
+            ui.heading("MDPS Tests");
+
+            ui.add_space(4.0);
+
+            ui.horizontal(|ui| {
+                if ui.button("QTP1").clicked() {}
+                if ui.button("QTP2").clicked() {}
+                if ui.button("QTP3").clicked() {}
+                if ui.button("QTP4").clicked() {}
+                if ui.button("QTP5").clicked() {}
+            });
+        });
+
+        ui.add_space(12.0);
+
+        // Integration tests
+        ui.group(|ui| {
+            ui.heading("Integration Tests");
+
+            ui.add_space(4.0);
+
+            // placeholders
+            ui.horizontal(|ui| {
+                if ui.button("QTP1").clicked() {}
+                if ui.button("QTP2").clicked() {}
+                if ui.button("QTP3").clicked() {}
+                if ui.button("QTP4").clicked() {}
+                if ui.button("QTP5").clicked() {}
+            });
+        });
     }
 
-    fn paint_maze_select_window(&mut self, ui: &mut Ui) {
+    fn paint_navcon_qtp_1_window(&mut self, ui: &mut Ui) {
         if ui.button("back").clicked() {
             self.state.pop();
         }
 
-        ui.heading("Maze Selection");
+        ui.add_space(8.0);
 
-        ui.horizontal(|ui| {
-            let maze_1_button = ui.button("Maze 1");
-            let _placeholder_1 = ui.button("Maze 2");
-            let _placeholder_2 = ui.button(" ...  ");
+        ui.heading("    NAVCON QTP 1");
 
-            if maze_1_button.clicked() {
-                self.state.push(Window::Maze1);
-            }
-        });
-    }
-
-    fn paint_maze_1_window(&mut self, ui: &mut Ui) {
-        if ui.button("back").clicked() {
-            self.state.pop();
-        }
-
-        ui.heading("Maze 1");
+        paint_navcon_qtp_1(ui);
     }
 }
 
@@ -80,12 +128,11 @@ impl eframe::App for MARVApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             if let Some(window) = self.state.curr_window() {
                 match window {
-                    Window::Entry => self.paint_entry_window(ui),
-                    Window::TestSelect => self.paint_maze_select_window(ui),
-                    Window::Maze1 => self.paint_maze_1_window(ui),
+                    Window::Main => self.paint_main_window(ui),
+                    Window::NAVCONQtp1 => self.paint_navcon_qtp_1_window(ui),
                 }
             } else {
-                self.state.push(Window::Entry);
+                self.state.push(Window::Main);
             }
         });
     }

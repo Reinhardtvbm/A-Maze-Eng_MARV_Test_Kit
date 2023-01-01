@@ -1,5 +1,7 @@
 use std::fmt::{self, Debug};
 
+extern crate serialport;
+
 use serialport::SerialPort;
 
 use super::packet::Packet;

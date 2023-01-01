@@ -55,7 +55,7 @@ impl Wheels {
     }
 
     pub fn get_rotation(&self) -> u16 {
-        self.rotation as u16
+        self.rotation.floor() as u16
     }
 
     pub fn update_distance(&mut self) {

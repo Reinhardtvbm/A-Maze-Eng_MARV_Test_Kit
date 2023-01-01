@@ -2,29 +2,22 @@ use std::{
     cell::{Ref, RefCell, RefMut},
     collections::VecDeque,
     rc::Rc,
+    sync::{Arc, Mutex},
 };
 
 use crate::components::packet::Packet;
 
-pub type SharedBuffer = Rc<RefCell<Buffer>>;
+pub type SharedBuffer = Arc<Mutex<Buffer>>;
 
+/// Get is a trait that was created to access the internal value of a SharedBuffer more easily,
+/// by simply calling `get()` as opposed to `as_ref().borrow()`
 pub trait Get {
     type Val;
 
-    fn get(&self) -> Ref<'_, Self::Val>;
-    fn get_mut(&self) -> RefMut<'_, Self::Val>;
-}
-
-impl Get for SharedBuffer {
-    type Val = Buffer;
-
-    fn get(&self) -> Ref<'_, Self::Val> {
-        self.as_ref().borrow()
-    }
-
-    fn get_mut(&self) -> RefMut<'_, Self::Val> {
-        self.as_ref().borrow_mut()
-    }
+    /// get the value immutably
+    fn get(&self) -> &Self::Val;
+    /// get the value mutably
+    fn get_mut(&self) -> &mut Self::Val;
 }
 
 /// A wrapper struct for FILO / queue based buffer
@@ -38,14 +31,23 @@ impl Buffer {
         Self(VecDeque::new())
     }
 
+    /// write/push to front of the queue
     pub fn write(&mut self, packet: Packet) {
         self.0.push_front(packet);
 
         println!("writing to buffer");
     }
 
+    /// read the value at the back of the queue and remove it
+    /// from the Buffer
     pub fn read(&mut self) -> Option<Packet> {
         self.0.pop_back()
+    }
+
+    /// read the value at the back of the queue without changing its
+    /// contents
+    pub fn peek(&self) -> Option<&Packet> {
+        self.0.back()
     }
 }
 

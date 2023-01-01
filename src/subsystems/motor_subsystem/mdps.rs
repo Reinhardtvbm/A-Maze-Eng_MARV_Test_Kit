@@ -1,7 +1,7 @@
 use crate::{
     components::adjacent_bytes::AdjacentBytes, subsystems::motor_subsystem::wheel::Wheels,
 };
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use crate::components::{
     buffer::{BufferUser, Get, SharedBuffer},
@@ -55,8 +55,8 @@ impl Mdps {
         };
 
         Self {
-            read_buffer: Rc::clone(r_buffer),
-            write_buffers: [Rc::clone(w_buffers.0), Rc::clone(w_buffers.1)],
+            read_buffer: Arc::clone(r_buffer),
+            write_buffers: [Arc::clone(w_buffers.0), Arc::clone(w_buffers.1)],
             port: comm_port,
             wheels: Wheels::new(8.0),
             state: SystemState::Idle,
@@ -66,19 +66,20 @@ impl Mdps {
 
     pub fn run(&mut self) {
         match self.state {
-            SystemState::Idle =>
-            /* Idle things */
-            {
+            SystemState::Idle => {
+                /* Idle things */
+
                 if let Some(packet) = self.read() {
+                    // if the control byte is correct, and a touch has been sensed
                     if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
                         self.operational_velocity = packet.dat0();
                         self.state = SystemState::Calibrate;
                     }
                 }
             }
-            SystemState::Calibrate =>
-            /* Calibration things */
-            {
+            SystemState::Calibrate => {
+                /* Calibration things */
+
                 if let Some(packet) = self.read() {
                     match packet.control_byte() {
                         ControlByte::Calibrated => {
@@ -120,6 +121,8 @@ impl Mdps {
                             }
                         }
                         ControlByte::MazeNavInstructions => {
+                            let mut rotating = false;
+
                             match packet.dec() {
                                 0 => {
                                     self.wheels
@@ -138,25 +141,38 @@ impl Mdps {
                                         .set_left_wheel_speed(-(self.operational_velocity as i16));
                                     self.wheels
                                         .set_right_wheel_speed(self.operational_velocity as i16);
+
+                                    rotating = true;
                                 }
                                 3 => {
                                     self.wheels
                                         .set_left_wheel_speed(self.operational_velocity as i16);
                                     self.wheels
                                         .set_right_wheel_speed(-(self.operational_velocity as i16));
+
+                                    rotating = true;
                                 }
                                 _ => (),
                             };
 
                             self.wheels.update_distance();
 
-                            // write battery level (no longer required as of 2022. i.e just send 0's)
+                            if rotating {
+                                let target_rotation =
+                                    AdjacentBytes::make(packet.dat1(), packet.dat0()).into();
+
+                                while self.wheels.get_rotation() < target_rotation {
+                                    self.wheels.update_distance();
+                                }
+                            }
+
+                            // write battery level (no longer required as of 2022, so just send 0's)
                             self.write(&mut [161, 0, 0, 0]);
 
-                            // write rotation
-                            let rotation = self.wheels.get_rotation();
+                            // get final rotation
+                            let curr_rotation = self.wheels.get_rotation();
 
-                            let rotation_bytes = AdjacentBytes::from(rotation);
+                            let rotation_bytes = AdjacentBytes::from(curr_rotation);
 
                             self.write(&mut [
                                 162,
@@ -215,25 +231,30 @@ impl Mdps {
 
 impl BufferUser for Mdps {
     fn write(&mut self, data: &mut [u8; 4]) {
-        match self.port.as_mut() {
-            Some(port) => port.write(data).expect("Could not write to port."),
-            None => {
-                let write_data = *data;
-
-                self.write_buffers[0]
-                    .get_mut()
-                    .write(Packet::from(write_data));
-                self.write_buffers[1]
-                    .get_mut()
-                    .write(Packet::from(write_data));
-            }
+        if let Some(com_port) = &mut self.port {
+            com_port.write(data).expect("MDPS could not write to port.");
         }
+
+        let write_data = *data;
+
+        self.write_buffers
+            .iter()
+            .for_each(|buffer| buffer.lock().unwrap().write(write_data.into()));
     }
 
     fn read(&mut self) -> Option<Packet> {
-        match self.port.as_mut() {
-            Some(com_port) => Some(com_port.read().expect("Failed to read from port.")),
-            None => self.read_buffer.get_mut().read(),
+        let port_data;
+        let buffer_data = self.read_buffer.lock().unwrap().read();
+
+        if let Some(com_port) = &mut self.port {
+            port_data = com_port.read().expect("Failed to read from port.");
+
+            // here we do a sanity check, just to make sure
+            if buffer_data.unwrap() != port_data {
+                panic!("FATAL: serial port data does not match buffer data");
+            }
         }
+
+        buffer_data
     }
 }
