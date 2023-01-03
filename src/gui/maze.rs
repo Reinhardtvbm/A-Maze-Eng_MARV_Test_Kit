@@ -150,6 +150,7 @@ impl MazeLineMap {
             ui,
         );
 
+        // PAINT VERTICAL LINES
         self.rows.iter().enumerate().for_each(|(row_index, row)| {
             row.0.iter().enumerate().for_each(|(col_index, v_line)| {
                 let rgb: (u8, u8, u8) = v_line.0.into();
@@ -167,6 +168,7 @@ impl MazeLineMap {
             })
         });
 
+        // PAINT HORIZONTAL LINES
         self.columns
             .iter()
             .enumerate()

@@ -5,6 +5,8 @@ use std::{
 
 use crate::components::packet::Packet;
 
+use super::comm_port::ControlByte;
+
 pub type SharedBuffer = Arc<Mutex<Buffer>>;
 
 /// Get is a trait that was created to access the internal value of a SharedBuffer more easily,
@@ -59,4 +61,5 @@ impl Buffer {
 pub trait BufferUser {
     fn write(&mut self, data: [u8; 4]);
     fn read(&mut self) -> Option<Packet>;
+    fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet;
 }

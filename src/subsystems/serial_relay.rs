@@ -44,4 +44,21 @@ impl BufferUser for SerialRelay {
     fn read(&mut self) -> Option<Packet> {
         self.in_buffer.lock().unwrap().read()
     }
+
+    fn wait_for_packet(
+        &mut self,
+        control_byte: crate::components::comm_port::ControlByte,
+    ) -> Packet {
+        let mut received_packet = None;
+
+        while received_packet.is_none() {
+            if let Some(in_packet) = self.read() {
+                if in_packet.control_byte() == control_byte {
+                    received_packet = Some(in_packet);
+                }
+            }
+        }
+
+        received_packet.unwrap()
+    }
 }

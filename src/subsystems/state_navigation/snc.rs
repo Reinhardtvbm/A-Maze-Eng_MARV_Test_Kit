@@ -129,6 +129,18 @@ impl Snc {
             }
         }
     }
+}
+
+impl BufferUser for Snc {
+    /// writes to the output buffer
+    fn write(&mut self, data: [u8; 4]) {
+        self.out_buffer.lock().unwrap().write(data.into());
+    }
+
+    /// reads from the input buffer
+    fn read(&mut self) -> Option<Packet> {
+        self.in_buffer.lock().unwrap().read()
+    }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
         let mut received_packet = None;
@@ -142,17 +154,5 @@ impl Snc {
         }
 
         received_packet.unwrap()
-    }
-}
-
-impl BufferUser for Snc {
-    /// writes to the output buffer
-    fn write(&mut self, data: [u8; 4]) {
-        self.out_buffer.lock().unwrap().write(data.into());
-    }
-
-    /// reads from the input buffer
-    fn read(&mut self) -> Option<Packet> {
-        self.in_buffer.lock().unwrap().read()
     }
 }

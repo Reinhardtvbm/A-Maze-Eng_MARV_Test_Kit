@@ -215,4 +215,8 @@ impl BufferUser for Mdps {
     fn read(&mut self) -> Option<Packet> {
         self.in_buffer.lock().unwrap().read()
     }
+
+    fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
+        todo!()
+    }
 }
