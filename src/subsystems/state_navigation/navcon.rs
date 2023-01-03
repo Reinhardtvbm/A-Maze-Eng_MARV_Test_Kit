@@ -21,6 +21,7 @@ enum Side {
     Right,
 }
 
+#[derive(Debug)]
 struct WorkingData {
     colours: Colours,
     incidence: u8,
@@ -78,6 +79,8 @@ impl NavCon {
     }
 
     fn green_encounter(&mut self, incidence: u8, side: Side) {
+        println!("green");
+
         self.output_rotation = match incidence {
             0..=5 => return,
             6..=44 => incidence as u16,
@@ -94,6 +97,8 @@ impl NavCon {
     }
 
     fn blue_encounter(&mut self, incidence: u8, side: Side) {
+        println!("blue");
+
         self.previous_state = NavConState::Forward;
         self.current_state = NavConState::Stop;
         self.next_state = NavConState::RotateRight;
@@ -136,11 +141,15 @@ impl NavCon {
     pub fn compute_output(&mut self, packets: [Packet; 5]) {
         let working_data = Self::parse_packets(packets);
 
+        println!("colours: {:?}", working_data.colours);
+
         match self.current_state {
             NavConState::Forward => {
+                println!("state forward");
                 if !working_data.colours.all_white() {
-                    for (index, colour) in working_data.colours.enumerate() {
+                    for (index, colour) in working_data.colours.into_iter().enumerate() {
                         if colour != Colour::White {
+                            println!("index not white: {}", index);
                             match index {
                                 1 => self.handle_incidence_with_line(
                                     working_data.incidence,
@@ -162,6 +171,7 @@ impl NavCon {
                 }
             }
             NavConState::Reverse => {
+                println!("state reverse");
                 // until MARV has reversed for 6cm, keep reversing....
                 if working_data.distance < 60 {
                     return;

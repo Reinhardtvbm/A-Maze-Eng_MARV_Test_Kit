@@ -34,8 +34,6 @@ impl Buffer {
     /// write/push to front of the queue
     pub fn write(&mut self, packet: Packet) {
         self.0.push_front(packet);
-
-        println!("writing to buffer");
     }
 
     /// read the value at the back of the queue and remove it

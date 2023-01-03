@@ -1,13 +1,17 @@
-use crate::{
-    components::adjacent_bytes::AdjacentBytes, subsystems::motor_subsystem::wheel::Wheels,
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
 };
-use std::sync::Arc;
 
-use crate::components::{
-    buffer::{BufferUser, SharedBuffer},
-    comm_port::ControlByte,
-    packet::Packet,
-    state::SystemState,
+use crate::{
+    components::{
+        adjacent_bytes::AdjacentBytes,
+        buffer::{BufferUser, SharedBuffer},
+        comm_port::ControlByte,
+        packet::Packet,
+        state::SystemState,
+    },
+    subsystems::motor_subsystem::wheel::Wheels,
 };
 
 /**
@@ -30,6 +34,7 @@ pub struct Mdps {
     state: SystemState,
     /// The desired operating velocity during maze navigation
     operational_velocity: u8,
+    wheel_info: Arc<Mutex<VecDeque<i16>>>,
 }
 
 impl Mdps {
@@ -37,169 +42,193 @@ impl Mdps {
     ///
     /// If the test kit is running with one or more real subsystems, commport will be Some(..), otherwise it
     /// must be None
-    pub fn new(out_buffer: &SharedBuffer, in_buffer: &SharedBuffer) -> Self {
+    pub fn new(
+        out_buffer: &SharedBuffer,
+        in_buffer: &SharedBuffer,
+        wheels_info_buff_ref: &Arc<Mutex<VecDeque<i16>>>,
+    ) -> Self {
         Self {
             in_buffer: Arc::clone(in_buffer),
             out_buffer: Arc::clone(out_buffer),
             wheels: Wheels::new(8.0),
             state: SystemState::Idle,
             operational_velocity: 0,
+            wheel_info: Arc::clone(wheels_info_buff_ref),
         }
     }
 
     pub fn run(&mut self) {
-        match self.state {
-            SystemState::Idle => {
-                /* Idle things */
+        let mut end_of_maze = false;
 
-                if let Some(packet) = self.read() {
-                    // if the control byte is correct, and a touch has been sensed
-                    if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
-                        self.operational_velocity = packet.dat0();
-                        self.state = SystemState::Calibrate;
+        while !end_of_maze {
+            match self.state {
+                SystemState::Idle => {
+                    /* Idle things */
+
+                    if let Some(packet) = self.read() {
+                        // if the control byte is correct, and a touch has been sensed
+                        if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
+                            self.operational_velocity = packet.dat0();
+                            self.state = SystemState::Calibrate;
+                        }
                     }
                 }
-            }
-            SystemState::Calibrate => {
-                /* Calibration things */
+                SystemState::Calibrate => {
+                    /* Calibration things */
 
-                if let Some(packet) = self.read() {
-                    match packet.control_byte() {
-                        ControlByte::Calibrated => {
-                            self.write([
-                                u8::from(ControlByte::CalibrateOperationalVelocity),
-                                self.operational_velocity,
-                                self.operational_velocity,
-                                0,
-                            ]);
+                    if let Some(packet) = self.read() {
+                        match packet.control_byte() {
+                            ControlByte::Calibrated => {
+                                self.write([
+                                    u8::from(ControlByte::CalibrateOperationalVelocity),
+                                    self.operational_velocity,
+                                    self.operational_velocity,
+                                    0,
+                                ]);
 
-                            self.write([u8::from(ControlByte::CalibrateBatteryLevel), 0, 0, 0]);
-                        }
-                        ControlByte::CalibrateButton => {
-                            if packet.dat1() == 1 {
-                                self.state = SystemState::Maze;
+                                self.write([u8::from(ControlByte::CalibrateBatteryLevel), 0, 0, 0]);
                             }
+                            ControlByte::CalibrateButton => {
+                                if packet.dat1() == 1 {
+                                    self.state = SystemState::Maze;
+                                }
+                            }
+                            _ => (),
                         }
-                        _ => (),
                     }
                 }
-            }
-            SystemState::Maze => {
-                /* Maze things */
-                if let Some(packet) = self.read() {
-                    match packet.control_byte() {
-                        ControlByte::MazeClapSnap => {
-                            if packet.dat1() == 1 {
-                                self.state = SystemState::Sos;
-                            }
-                        }
-                        ControlByte::MazeButton => {
-                            if packet.dat1() == 1 {
-                                self.state = SystemState::Idle;
-                            }
-                        }
-                        ControlByte::MazeNavInstructions => {
-                            let mut rotating = false;
-
-                            match packet.dec() {
-                                0 => {
-                                    self.wheels
-                                        .set_left_wheel_speed(self.operational_velocity as i16);
-                                    self.wheels
-                                        .set_right_wheel_speed(self.operational_velocity as i16);
-                                }
-                                1 => {
-                                    self.wheels
-                                        .set_left_wheel_speed(-(self.operational_velocity as i16));
-                                    self.wheels
-                                        .set_right_wheel_speed(-(self.operational_velocity as i16));
-                                }
-                                2 => {
-                                    self.wheels
-                                        .set_left_wheel_speed(-(self.operational_velocity as i16));
-                                    self.wheels
-                                        .set_right_wheel_speed(self.operational_velocity as i16);
-
-                                    rotating = true;
-                                }
-                                3 => {
-                                    self.wheels
-                                        .set_left_wheel_speed(self.operational_velocity as i16);
-                                    self.wheels
-                                        .set_right_wheel_speed(-(self.operational_velocity as i16));
-
-                                    rotating = true;
-                                }
-                                _ => (),
-                            };
-
-                            self.wheels.update_distance();
-
-                            if rotating {
-                                let target_rotation =
-                                    AdjacentBytes::make(packet.dat1(), packet.dat0()).into();
-
-                                while self.wheels.get_rotation() < target_rotation {
-                                    self.wheels.update_distance();
+                SystemState::Maze => {
+                    /* Maze things */
+                    if let Some(packet) = self.read() {
+                        match packet.control_byte() {
+                            ControlByte::MazeClapSnap => {
+                                if packet.dat1() == 1 {
+                                    self.state = SystemState::Sos;
                                 }
                             }
+                            ControlByte::MazeButton => {
+                                if packet.dat1() == 1 {
+                                    self.state = SystemState::Idle;
+                                }
+                            }
+                            ControlByte::MazeNavInstructions => {
+                                let mut rotating = false;
 
-                            // write battery level (no longer required as of 2022, so just send 0's)
-                            self.write([161, 0, 0, 0]);
+                                match packet.dec() {
+                                    0 => {
+                                        self.wheels
+                                            .set_left_wheel_speed(self.operational_velocity as i16);
+                                        self.wheels.set_right_wheel_speed(
+                                            self.operational_velocity as i16,
+                                        );
+                                    }
+                                    1 => {
+                                        self.wheels.set_left_wheel_speed(
+                                            -(self.operational_velocity as i16),
+                                        );
+                                        self.wheels.set_right_wheel_speed(
+                                            -(self.operational_velocity as i16),
+                                        );
+                                    }
+                                    2 => {
+                                        self.wheels.set_left_wheel_speed(
+                                            -(self.operational_velocity as i16),
+                                        );
+                                        self.wheels.set_right_wheel_speed(
+                                            self.operational_velocity as i16,
+                                        );
 
-                            // get final rotation
-                            let curr_rotation = self.wheels.get_rotation();
+                                        rotating = true;
+                                    }
+                                    3 => {
+                                        self.wheels
+                                            .set_left_wheel_speed(self.operational_velocity as i16);
+                                        self.wheels.set_right_wheel_speed(
+                                            -(self.operational_velocity as i16),
+                                        );
 
-                            let rotation_bytes = AdjacentBytes::from(curr_rotation);
+                                        rotating = true;
+                                    }
+                                    _ => (),
+                                };
 
-                            self.write([
-                                162,
-                                rotation_bytes.get_lsb(),
-                                rotation_bytes.get_msb(),
-                                match self.wheels.left_rotation() {
-                                    true => 2,
-                                    false => 3,
-                                },
-                            ]);
+                                self.wheels.update_distance();
 
-                            // write speed
-                            self.write([
-                                163,
-                                self.wheels.get_left_wheel_speed(),
-                                self.wheels.get_right_wheel_speed(),
-                                match self.wheels.going_forward() {
-                                    true => 0,
-                                    false => 1,
-                                },
-                            ]);
+                                if rotating {
+                                    let target_rotation =
+                                        AdjacentBytes::make(packet.dat1(), packet.dat0()).into();
 
-                            // write distance
-                            let distance = self.wheels.get_distance();
+                                    while self.wheels.get_rotation() < target_rotation {
+                                        self.wheels.update_distance();
+                                    }
+                                }
 
-                            let distance_bytes = AdjacentBytes::from(distance);
+                                self.wheel_info
+                                    .lock()
+                                    .unwrap()
+                                    .push_back(self.wheels.get_left());
+                                self.wheel_info
+                                    .lock()
+                                    .unwrap()
+                                    .push_back(self.wheels.get_right());
 
-                            self.write([
-                                164,
-                                distance_bytes.get_lsb(),
-                                distance_bytes.get_msb(),
-                                0,
-                            ]);
+                                // write battery level (no longer required as of 2022, so just send 0's)
+                                self.write([161, 0, 0, 0]);
+
+                                // get final rotation
+                                let curr_rotation = self.wheels.get_rotation();
+
+                                let rotation_bytes = AdjacentBytes::from(curr_rotation);
+
+                                self.write([
+                                    162,
+                                    rotation_bytes.get_lsb(),
+                                    rotation_bytes.get_msb(),
+                                    match self.wheels.left_rotation() {
+                                        true => 2,
+                                        false => 3,
+                                    },
+                                ]);
+
+                                // write speed
+                                self.write([
+                                    163,
+                                    self.wheels.get_left_wheel_speed(),
+                                    self.wheels.get_right_wheel_speed(),
+                                    match self.wheels.going_forward() {
+                                        true => 0,
+                                        false => 1,
+                                    },
+                                ]);
+
+                                // write distance
+                                let distance = self.wheels.get_distance();
+
+                                let distance_bytes = AdjacentBytes::from(distance);
+
+                                self.write([
+                                    164,
+                                    distance_bytes.get_msb(),
+                                    distance_bytes.get_lsb(),
+                                    0,
+                                ]);
+                            }
+                            ControlByte::MazeEndOfMaze => self.state = SystemState::Idle,
+                            _ => (),
                         }
-                        ControlByte::MazeEndOfMaze => self.state = SystemState::Idle,
-                        _ => (),
                     }
                 }
-            }
-            SystemState::Sos => {
-                /* SOS things */
-                self.wheels.set_left_wheel_speed(0);
-                self.wheels.set_right_wheel_speed(0);
+                SystemState::Sos => {
+                    /* SOS things */
+                    self.wheels.set_left_wheel_speed(0);
+                    self.wheels.set_right_wheel_speed(0);
 
-                self.write([u8::from(ControlByte::SosSpeed), 0, 0, 0]);
+                    self.write([u8::from(ControlByte::SosSpeed), 0, 0, 0]);
 
-                if let Some(packet) = self.read() {
-                    if packet.control_byte() == ControlByte::SosClapSnap && packet.dat1() == 1 {
-                        self.state = SystemState::Maze;
+                    if let Some(packet) = self.read() {
+                        if packet.control_byte() == ControlByte::SosClapSnap && packet.dat1() == 1 {
+                            self.state = SystemState::Maze;
+                        }
                     }
                 }
             }

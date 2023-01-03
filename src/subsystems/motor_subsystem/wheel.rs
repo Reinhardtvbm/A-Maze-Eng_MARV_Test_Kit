@@ -58,6 +58,14 @@ impl Wheels {
         self.rotation.floor() as u16
     }
 
+    pub fn get_left(&self) -> i16 {
+        self.left_speed
+    }
+
+    pub fn get_right(&self) -> i16 {
+        self.right_speed
+    }
+
     pub fn update_distance(&mut self) {
         if self.left_speed == 0 && self.right_speed == 0 {
             self.left_distance = 0.0;

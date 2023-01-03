@@ -44,6 +44,13 @@ impl Snc {
     /// will most likely be changed to run asynchonously until maze completion
     pub fn run(&mut self) {
         let mut end_of_maze = false;
+        let mut packets = [
+            Packet::new(162, 0, 0, 0),
+            Packet::new(163, 0, 0, 0),
+            Packet::new(164, 0, 0, 0),
+            Packet::new(177, 0, 0, 0),
+            Packet::new(178, 0, 0, 0),
+        ];
 
         while !end_of_maze {
             match self.state {
@@ -68,8 +75,27 @@ impl Snc {
                     self.write([145, 0, 0, 0]); // write no clap/snap sensed
                     self.write([146, 0, 0, 0]); // write no rouch
 
-                    let mut packets = [Packet::new(0, 0, 0, 0); 5];
+                    // run NAVCON and write output:
+                    self.navcon.compute_output(packets); // NAVCON
 
+                    // write navigation control data (Control byte = 147) based on navcon.compute_output()
+                    match self.navcon.get_state() {
+                        NavConState::Forward => self.write([147, 100, 100, 0]),
+                        NavConState::Reverse => self.write([147, 100, 100, 1]),
+                        NavConState::Stop => self.write([147, 0, 0, 0]),
+                        NavConState::RotateLeft => {
+                            let dat1 = ((self.navcon.output_rotation & 0xFF00) >> 8) as u8;
+                            let dat0 = (self.navcon.output_rotation & 0x00FF) as u8;
+
+                            self.write([147, dat1, dat0, 2]);
+                        }
+                        NavConState::RotateRight => {
+                            let dat1 = ((self.navcon.output_rotation & 0xFF00) >> 8) as u8;
+                            let dat0 = (self.navcon.output_rotation & 0x00FF) as u8;
+
+                            self.write([147, dat1, dat0, 3]);
+                        }
+                    }
                     // get MDPS packets:
                     self.wait_for_packet(161.into()); // just discard the battery level packet
 
@@ -94,28 +120,6 @@ impl Snc {
 
                     packets[4] = self.wait_for_packet(178.into());
                     // --------------------------------------------------------------------------------------------
-
-                    // run NAVCON and write output:
-                    self.navcon.compute_output(packets); // NAVCON
-
-                    // write navigation control data (Control byte = 147) based on navcon.compute_output()
-                    match self.navcon.get_state() {
-                        NavConState::Forward => self.write([147, 100, 100, 0]),
-                        NavConState::Reverse => self.write([147, 100, 100, 1]),
-                        NavConState::Stop => self.write([147, 0, 0, 0]),
-                        NavConState::RotateLeft => {
-                            let dat1 = ((self.navcon.output_rotation & 0xFF00) >> 8) as u8;
-                            let dat0 = (self.navcon.output_rotation & 0x00FF) as u8;
-
-                            self.write([147, dat1, dat0, 2]);
-                        }
-                        NavConState::RotateRight => {
-                            let dat1 = ((self.navcon.output_rotation & 0xFF00) >> 8) as u8;
-                            let dat0 = (self.navcon.output_rotation & 0x00FF) as u8;
-
-                            self.write([147, dat1, dat0, 3]);
-                        }
-                    }
                 }
                 SystemState::Sos => {
                     /* SOS */

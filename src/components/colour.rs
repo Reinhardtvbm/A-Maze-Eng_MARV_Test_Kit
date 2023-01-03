@@ -1,3 +1,5 @@
+use super::adjacent_bytes::AdjacentBytes;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Colour {
@@ -67,6 +69,18 @@ impl From<u16> for Colours {
     }
 }
 
+impl From<Colours> for AdjacentBytes {
+    fn from(colours: Colours) -> Self {
+        let mut word: u16 = 0;
+
+        for (index, colour) in colours.into_iter().enumerate() {
+            word |= (colour as u16) << 12 >> (index * 3);
+        }
+
+        word.into()
+    }
+}
+
 impl Colours {
     pub fn new() -> Self {
         Self {
@@ -76,7 +90,7 @@ impl Colours {
     }
 
     pub fn all_white(&self) -> bool {
-        self.colours.iter().any(|col| *col != Colour::White)
+        self.colours.iter().all(|col| *col == Colour::White)
     }
 }
 

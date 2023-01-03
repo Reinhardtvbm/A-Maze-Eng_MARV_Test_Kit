@@ -90,6 +90,7 @@ impl MazeLineMap {
     }
 
     pub fn get_colour_from_coord(&self, x: f32, y: f32) -> Option<Colour> {
+        // println!("accessing coord: ({}, {})", x, y);
         // x: <-->
         //
         // mod by (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) to get block indices

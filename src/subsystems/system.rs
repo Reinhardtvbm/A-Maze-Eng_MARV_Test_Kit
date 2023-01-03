@@ -1,11 +1,13 @@
 //! The bread and butter of the program:
 //!     will emulate the maze robot
 
+use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use crate::components::buffer::{Buffer, SharedBuffer};
 
 use crate::components::comm_port::ControlByte;
+use crate::gui::maze::MazeLineMap;
 use crate::subsystems::{
     motor_subsystem::mdps::Mdps, sensor_subsystem::ss::Ss, state_navigation::snc::Snc,
 };
@@ -35,6 +37,7 @@ pub fn run_system(
     snc_com: String,
     ss_com: String,
     mdps_com: String,
+    maze: MazeLineMap,
 ) {
     // declare each subsystem's I/O buffers
     let snc_input_buffer = Arc::new(Mutex::new(Buffer::new()));
@@ -44,6 +47,8 @@ pub fn run_system(
     let snc_output_buffer = Arc::new(Mutex::new(Buffer::new()));
     let ss_output_buffer = Arc::new(Mutex::new(Buffer::new()));
     let mdps_output_buffer = Arc::new(Mutex::new(Buffer::new()));
+
+    let wheel_info = Arc::new(Mutex::new(VecDeque::new()));
 
     // run their emulations if required, or setup a serial port relay if not
     match snc_mode {
@@ -59,8 +64,13 @@ pub fn run_system(
 
     match ss_mode {
         Mode::Emulate => {
-            let mut ss = Ss::new(&ss_output_buffer, &ss_input_buffer, [(0., 0.); 5]);
-            std::thread::spawn(move || ss.run());
+            let mut ss = Ss::new(
+                &ss_output_buffer,
+                &ss_input_buffer,
+                [(0., 0.); 5],
+                &wheel_info,
+            );
+            std::thread::spawn(move || ss.run(&maze));
         }
         Mode::Physical => {
             let mut relay = SerialRelay::new(&ss_output_buffer, &ss_input_buffer, ss_com);
@@ -70,7 +80,7 @@ pub fn run_system(
 
     match mdps_mode {
         Mode::Emulate => {
-            let mut mdps = Mdps::new(&mdps_output_buffer, &mdps_input_buffer);
+            let mut mdps = Mdps::new(&mdps_output_buffer, &mdps_input_buffer, &wheel_info);
             std::thread::spawn(move || mdps.run());
         }
         Mode::Physical => {
@@ -87,11 +97,14 @@ pub fn run_system(
         let mdps_data = mdps_output_buffer.lock().unwrap().read();
 
         if let Some(packet) = snc_data {
+            // println!("snc data: {:?}", packet);
+
             ss_input_buffer.lock().unwrap().write(packet);
             mdps_input_buffer.lock().unwrap().write(packet);
         }
 
         if let Some(packet) = ss_data {
+            // println!("ss data: {:?}", packet);
             snc_input_buffer.lock().unwrap().write(packet);
             mdps_input_buffer.lock().unwrap().write(packet);
 
@@ -101,6 +114,7 @@ pub fn run_system(
         }
 
         if let Some(packet) = mdps_data {
+            // println!("mdps data: {:?}", packet);
             ss_input_buffer.lock().unwrap().write(packet);
             snc_input_buffer.lock().unwrap().write(packet);
         }

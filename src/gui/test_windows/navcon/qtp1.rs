@@ -12,7 +12,11 @@ use eframe::{
     epaint::{Color32, Pos2},
 };
 
-use crate::{components::colour::Colour, gui::maze::MazeLineMap};
+use crate::{
+    components::colour::Colour,
+    gui::maze::MazeLineMap,
+    subsystems::system::{run_system, Mode},
+};
 
 pub fn paint_navcon_qtp_1(ui: &mut Ui) {
     // INITIALISE THE MAZE
@@ -39,5 +43,15 @@ pub fn paint_navcon_qtp_1(ui: &mut Ui) {
         Pos2::new(100.0, 100.0),
         2.5,
         Color32::from_rgb(100, 100, 100),
+    );
+
+    run_system(
+        Mode::Emulate,
+        Mode::Emulate,
+        Mode::Emulate,
+        String::from('0'),
+        String::from('0'),
+        String::from('0'),
+        maze_map,
     );
 }
