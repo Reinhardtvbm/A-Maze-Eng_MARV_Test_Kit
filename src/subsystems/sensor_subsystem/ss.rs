@@ -1,9 +1,8 @@
-use std::{rc::Rc, sync::Arc, time::SystemTime};
+use std::sync::Arc;
 
 use crate::components::{
-    buffer::{BufferUser, Get, SharedBuffer},
+    buffer::{BufferUser, SharedBuffer},
     colour::Colours,
-    comm_port::ComPort,
     packet::Packet,
 };
 
@@ -18,63 +17,35 @@ pub struct Ss {
     sensor_colours: Colours,
     /// A shared buffer of type Rc<RefCell<_>>
     /// which is written to by the other two subsystems
-    read_buffer: SharedBuffer,
+    in_buffer: SharedBuffer,
     /// The shared buffers of the other two subsystems
     /// for the MDPS to send its data to
-    write_buffers: [SharedBuffer; 2],
-    /// The serial port to write to if serial comms are
-    /// being utilised
-    port: Option<ComPort>,
+    out_buffer: SharedBuffer,
 }
 
 impl Ss {
     pub fn new(
-        w_buffers: (&SharedBuffer, &SharedBuffer),
-        r_buffer: &SharedBuffer,
-        activate_port: bool,
+        out_buffer: &SharedBuffer,
+        in_buffer: &SharedBuffer,
         init_sensor_pos: [(f32, f32); 5],
     ) -> Self {
-        let comm_port = match activate_port {
-            true => Some(ComPort::new(String::from("69"), 19200)),
-            false => None,
-        };
-
         Self {
             sensor_colours: Colours::new(),
             sensor_positions: init_sensor_pos,
-            read_buffer: Arc::clone(r_buffer),
-            write_buffers: [Arc::clone(w_buffers.0), Arc::clone(w_buffers.1)],
-            port: comm_port,
+            in_buffer: Arc::clone(in_buffer),
+            out_buffer: Arc::clone(out_buffer),
         }
     }
+
+    pub fn run(&mut self) {}
 }
 
 impl BufferUser for Ss {
-    fn write(&mut self, data: &mut [u8; 4]) {
-        if let Some(com_port) = &mut self.port {
-            com_port.write(data).expect("SS could not write to port.");
-        }
-
-        let write_data = *data;
-
-        self.write_buffers
-            .iter()
-            .for_each(|buffer| buffer.lock().unwrap().write(write_data.into()));
+    fn write(&mut self, data: [u8; 4]) {
+        self.out_buffer.lock().unwrap().write(data.into());
     }
 
     fn read(&mut self) -> Option<Packet> {
-        let port_data;
-        let buffer_data = self.read_buffer.lock().unwrap().read();
-
-        if let Some(com_port) = &mut self.port {
-            port_data = com_port.read().expect("Failed to read from port.");
-
-            // here we do a sanity check, just to make sure
-            if buffer_data.unwrap() != port_data {
-                panic!("FATAL: serial port data does not match buffer data");
-            }
-        }
-
-        buffer_data
+        self.in_buffer.lock().unwrap().read()
     }
 }

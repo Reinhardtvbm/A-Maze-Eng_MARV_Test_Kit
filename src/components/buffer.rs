@@ -1,7 +1,5 @@
 use std::{
-    cell::{Ref, RefCell, RefMut},
     collections::VecDeque,
-    rc::Rc,
     sync::{Arc, Mutex},
 };
 
@@ -59,6 +57,6 @@ impl Buffer {
 /// and in the case that they are using the serial port, that
 /// will be read from / written to.
 pub trait BufferUser {
-    fn write(&mut self, data: &mut [u8; 4]);
+    fn write(&mut self, data: [u8; 4]);
     fn read(&mut self) -> Option<Packet>;
 }

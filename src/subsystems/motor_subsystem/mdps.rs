@@ -1,11 +1,11 @@
 use crate::{
     components::adjacent_bytes::AdjacentBytes, subsystems::motor_subsystem::wheel::Wheels,
 };
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use crate::components::{
-    buffer::{BufferUser, Get, SharedBuffer},
-    comm_port::{ComPort, ControlByte},
+    buffer::{BufferUser, SharedBuffer},
+    comm_port::ControlByte,
     packet::Packet,
     state::SystemState,
 };
@@ -18,17 +18,10 @@ use crate::components::{
 pub struct Mdps {
     /// A shared buffer of type Rc<RefCell<_>>
     /// which is written to by the other two subsystems
-    read_buffer: SharedBuffer,
+    in_buffer: SharedBuffer,
     /// The shared buffers of the other two subsystems
     /// for the MDPS to send its data to
-    write_buffers: [SharedBuffer; 2],
-    /// The ComPort which the MDPS is connected to
-    /// ability to run the system fully automatically
-    /// is planned, to in this case, none of the subsystem
-    /// structs will have a ComPort.
-    /// `ComPort` is an abstraction for `SerialPort` from
-    /// the Rust serialport crete
-    port: Option<ComPort>,
+    out_buffer: SharedBuffer,
     /// Wheels is a struct that contains data for speed, distance,
     /// and rotation. It facilitates some of the calculations
     /// required to keep track of this data in autonomous mode
@@ -44,20 +37,10 @@ impl Mdps {
     ///
     /// If the test kit is running with one or more real subsystems, commport will be Some(..), otherwise it
     /// must be None
-    pub fn new(
-        w_buffers: (&SharedBuffer, &SharedBuffer),
-        r_buffer: &SharedBuffer,
-        activate_port: bool,
-    ) -> Self {
-        let comm_port = match activate_port {
-            true => Some(ComPort::new(String::from("69"), 19200)),
-            false => None,
-        };
-
+    pub fn new(out_buffer: &SharedBuffer, in_buffer: &SharedBuffer) -> Self {
         Self {
-            read_buffer: Arc::clone(r_buffer),
-            write_buffers: [Arc::clone(w_buffers.0), Arc::clone(w_buffers.1)],
-            port: comm_port,
+            in_buffer: Arc::clone(in_buffer),
+            out_buffer: Arc::clone(out_buffer),
             wheels: Wheels::new(8.0),
             state: SystemState::Idle,
             operational_velocity: 0,
@@ -83,19 +66,14 @@ impl Mdps {
                 if let Some(packet) = self.read() {
                     match packet.control_byte() {
                         ControlByte::Calibrated => {
-                            self.write(&mut [
+                            self.write([
                                 u8::from(ControlByte::CalibrateOperationalVelocity),
                                 self.operational_velocity,
                                 self.operational_velocity,
                                 0,
                             ]);
 
-                            self.write(&mut [
-                                u8::from(ControlByte::CalibrateBatteryLevel),
-                                0,
-                                0,
-                                0,
-                            ]);
+                            self.write([u8::from(ControlByte::CalibrateBatteryLevel), 0, 0, 0]);
                         }
                         ControlByte::CalibrateButton => {
                             if packet.dat1() == 1 {
@@ -167,14 +145,14 @@ impl Mdps {
                             }
 
                             // write battery level (no longer required as of 2022, so just send 0's)
-                            self.write(&mut [161, 0, 0, 0]);
+                            self.write([161, 0, 0, 0]);
 
                             // get final rotation
                             let curr_rotation = self.wheels.get_rotation();
 
                             let rotation_bytes = AdjacentBytes::from(curr_rotation);
 
-                            self.write(&mut [
+                            self.write([
                                 162,
                                 rotation_bytes.get_lsb(),
                                 rotation_bytes.get_msb(),
@@ -185,7 +163,7 @@ impl Mdps {
                             ]);
 
                             // write speed
-                            self.write(&mut [
+                            self.write([
                                 163,
                                 self.wheels.get_left_wheel_speed(),
                                 self.wheels.get_right_wheel_speed(),
@@ -200,7 +178,7 @@ impl Mdps {
 
                             let distance_bytes = AdjacentBytes::from(distance);
 
-                            self.write(&mut [
+                            self.write([
                                 164,
                                 distance_bytes.get_lsb(),
                                 distance_bytes.get_msb(),
@@ -217,7 +195,7 @@ impl Mdps {
                 self.wheels.set_left_wheel_speed(0);
                 self.wheels.set_right_wheel_speed(0);
 
-                self.write(&mut [u8::from(ControlByte::SosSpeed), 0, 0, 0]);
+                self.write([u8::from(ControlByte::SosSpeed), 0, 0, 0]);
 
                 if let Some(packet) = self.read() {
                     if packet.control_byte() == ControlByte::SosClapSnap && packet.dat1() == 1 {
@@ -230,31 +208,11 @@ impl Mdps {
 }
 
 impl BufferUser for Mdps {
-    fn write(&mut self, data: &mut [u8; 4]) {
-        if let Some(com_port) = &mut self.port {
-            com_port.write(data).expect("MDPS could not write to port.");
-        }
-
-        let write_data = *data;
-
-        self.write_buffers
-            .iter()
-            .for_each(|buffer| buffer.lock().unwrap().write(write_data.into()));
+    fn write(&mut self, data: [u8; 4]) {
+        self.out_buffer.lock().unwrap().write(data.into());
     }
 
     fn read(&mut self) -> Option<Packet> {
-        let port_data;
-        let buffer_data = self.read_buffer.lock().unwrap().read();
-
-        if let Some(com_port) = &mut self.port {
-            port_data = com_port.read().expect("Failed to read from port.");
-
-            // here we do a sanity check, just to make sure
-            if buffer_data.unwrap() != port_data {
-                panic!("FATAL: serial port data does not match buffer data");
-            }
-        }
-
-        buffer_data
+        self.in_buffer.lock().unwrap().read()
     }
 }

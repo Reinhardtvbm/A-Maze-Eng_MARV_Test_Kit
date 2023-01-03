@@ -12,13 +12,8 @@ impl Packet {
         }
     }
 
-    // pub fn reset(&mut self) {
-    //     self.bytes = [0; 4];
-    // }
-
     pub fn control_byte(&self) -> ControlByte {
-        ControlByte::from(self.bytes[0])
-            .unwrap_or_else(|_| panic!("{} is not a valid control byte", self.bytes[0]))
+        self.bytes[0].into()
     }
 
     pub fn dat1(&self) -> u8 {
@@ -37,5 +32,11 @@ impl Packet {
 impl From<[u8; 4]> for Packet {
     fn from(bytes: [u8; 4]) -> Self {
         Self { bytes }
+    }
+}
+
+impl From<Packet> for [u8; 4] {
+    fn from(p: Packet) -> Self {
+        [p.control_byte().into(), p.dat1(), p.dat0(), p.dec()]
     }
 }

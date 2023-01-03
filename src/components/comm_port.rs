@@ -69,41 +69,38 @@ pub enum ControlByte {
     MazeIncidence,
     SosSpeed,
     SosClapSnap,
-}
-
-impl ControlByte {
-    pub fn from(byte: u8) -> Result<Self, ()> {
-        match byte {
-            16 => Ok(Self::IdleButton),
-            112 => Ok(Self::Calibrated),
-            96 => Ok(Self::CalibrateOperationalVelocity),
-            97 => Ok(Self::CalibrateBatteryLevel),
-            80 => Ok(Self::CalibrateButton),
-            113 => Ok(Self::CalibrateColours),
-            145 => Ok(Self::MazeClapSnap),
-            146 => Ok(Self::MazeButton),
-            147 => Ok(Self::MazeNavInstructions),
-            161 => Ok(Self::MazeBatteryLevel),
-            162 => Ok(Self::MazeRotation),
-            163 => Ok(Self::MazeSpeeds),
-            164 => Ok(Self::MazeDistance),
-            179 => Ok(Self::MazeEndOfMaze),
-            177 => Ok(Self::MazeColours),
-            178 => Ok(Self::MazeIncidence),
-            208 => Ok(Self::SosClapSnap),
-            228 => Ok(Self::SosSpeed),
-            _ => Err(()),
-        }
-    }
-
-    // pub fn to(byte: Self) -> Result<u8, ()> {
-    //
-    // }
+    Undefined,
 }
 
 impl fmt::Debug for ComPort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0.name().unwrap())
+    }
+}
+
+impl From<u8> for ControlByte {
+    fn from(byte: u8) -> Self {
+        match byte {
+            16 => Self::IdleButton,
+            112 => Self::Calibrated,
+            96 => Self::CalibrateOperationalVelocity,
+            97 => Self::CalibrateBatteryLevel,
+            80 => Self::CalibrateButton,
+            113 => Self::CalibrateColours,
+            145 => Self::MazeClapSnap,
+            146 => Self::MazeButton,
+            147 => Self::MazeNavInstructions,
+            161 => Self::MazeBatteryLevel,
+            162 => Self::MazeRotation,
+            163 => Self::MazeSpeeds,
+            164 => Self::MazeDistance,
+            179 => Self::MazeEndOfMaze,
+            177 => Self::MazeColours,
+            178 => Self::MazeIncidence,
+            208 => Self::SosClapSnap,
+            228 => Self::SosSpeed,
+            _ => Self::Undefined,
+        }
     }
 }
 
@@ -128,6 +125,7 @@ impl From<ControlByte> for u8 {
             ControlByte::MazeIncidence => 178,
             ControlByte::SosClapSnap => 208,
             ControlByte::SosSpeed => 228,
+            ControlByte::Undefined => 255,
         }
     }
 }

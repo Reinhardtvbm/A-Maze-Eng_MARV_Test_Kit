@@ -23,6 +23,7 @@ pub mod subsystems {
         pub mod ss;
     }
 
+    pub mod serial_relay;
     pub mod system;
 }
 
