@@ -4,21 +4,16 @@
 //! the state of the system and navigating it through a maze.
 
 use crate::components::{
-    buffer::{BufferUser, SharedBuffer},
-    comm_port::ControlByte,
-    packet::Packet,
-    state::SystemState,
+    buffer::BufferUser, comm_port::ControlByte, packet::Packet, state::SystemState,
 };
 
+use crate::subsystems::comms_channel::CommsChannel;
 use crate::subsystems::state_navigation::navcon::{NavCon, NavConState};
-
-use std::sync::Arc;
 
 /// The struct that allows the system to emulate the SNC
 #[derive(Debug)]
 pub struct Snc {
-    in_buffer: SharedBuffer,
-    out_buffer: SharedBuffer,
+    comms: CommsChannel,
     state: SystemState,
     navcon: NavCon,
 }
@@ -30,12 +25,11 @@ impl Snc {
     /// `activate_port` will enable the COM Port (`ComPort`) if `true`
     ///
     /// need to add a way to set the COM port number and baud rate
-    pub fn new(out_buffer: &SharedBuffer, in_buffer: &SharedBuffer) -> Self {
+    pub fn new(comms: CommsChannel) -> Self {
         Self {
-            in_buffer: Arc::clone(in_buffer),
-            out_buffer: Arc::clone(out_buffer),
             state: SystemState::Idle,
             navcon: NavCon::new(),
+            comms,
         }
     }
 
@@ -43,7 +37,8 @@ impl Snc {
     ///
     /// will most likely be changed to run asynchonously until maze completion
     pub fn run(&mut self) {
-        let mut end_of_maze = false;
+        let end_of_maze = false;
+
         let mut packets = [
             Packet::new(162, 0, 0, 0),
             Packet::new(163, 0, 0, 0),
@@ -61,12 +56,11 @@ impl Snc {
                 }
                 SystemState::Calibrate => {
                     /* CALIBRATE */
-                    if let Some(packet) = self.read() {
-                        // ControlByte::CalibrateColours = 113
-                        if packet.control_byte() == ControlByte::CalibrateColours {
-                            self.write([80, 1, 0, 0]);
-                            self.state = SystemState::Maze;
-                        }
+                    let packet = self.read();
+                    // ControlByte::CalibrateColours = 113
+                    if packet.control_byte() == ControlByte::CalibrateColours {
+                        self.write([80, 1, 0, 0]);
+                        self.state = SystemState::Maze;
                     }
                 }
                 SystemState::Maze => {
@@ -75,13 +69,17 @@ impl Snc {
                     self.write([145, 0, 0, 0]); // write no clap/snap sensed
                     self.write([146, 0, 0, 0]); // write no rouch
 
+                    println!("navcon start");
+
                     // run NAVCON and write output:
                     self.navcon.compute_output(packets); // NAVCON
 
+                    println!("navcon done");
+
                     // write navigation control data (Control byte = 147) based on navcon.compute_output()
                     match self.navcon.get_state() {
-                        NavConState::Forward => self.write([147, 100, 100, 0]),
-                        NavConState::Reverse => self.write([147, 100, 100, 1]),
+                        NavConState::Forward => self.write([147, 50, 50, 0]),
+                        NavConState::Reverse => self.write([147, 50, 50, 1]),
                         NavConState::Stop => self.write([147, 0, 0, 0]),
                         NavConState::RotateLeft => {
                             let dat1 = ((self.navcon.output_rotation & 0xFF00) >> 8) as u8;
@@ -99,35 +97,33 @@ impl Snc {
                     // get MDPS packets:
                     self.wait_for_packet(161.into()); // just discard the battery level packet
 
-                    packets[0] = self.wait_for_packet(162.into());
-                    packets[1] = self.wait_for_packet(163.into());
-                    packets[2] = self.wait_for_packet(164.into());
-
-                    // get SS packets:
-                    //
-                    // first check if end of maze
-                    let mut p_acket = None;
-
-                    while p_acket.is_none() {
-                        p_acket = self.read();
+                    // now should be synchronised
+                    for packet in &mut packets {
+                        *packet = self.read();
                     }
 
-                    if p_acket.unwrap().control_byte() == 177.into() {
-                        packets[3] = p_acket.unwrap();
-                    } else {
-                        end_of_maze = true;
+                    // if end of maze, reset the packets and return to Idle
+                    if packets[4].control_byte() == ControlByte::MazeEndOfMaze {
+                        packets = [
+                            Packet::new(162, 0, 0, 0),
+                            Packet::new(163, 0, 0, 0),
+                            Packet::new(164, 0, 0, 0),
+                            Packet::new(177, 0, 0, 0),
+                            Packet::new(178, 0, 0, 0),
+                        ];
+
+                        self.state = SystemState::Idle;
                     }
 
-                    packets[4] = self.wait_for_packet(178.into());
                     // --------------------------------------------------------------------------------------------
                 }
                 SystemState::Sos => {
                     /* SOS */
-                    if let Some(packet) = self.read() {
-                        if packet.control_byte() == ControlByte::SosSpeed {
-                            self.write([208, 1, 0, 0]);
-                            self.state = SystemState::Idle;
-                        }
+                    let packet = self.read();
+
+                    if packet.control_byte() == ControlByte::SosSpeed {
+                        self.write([208, 1, 0, 0]);
+                        self.state = SystemState::Idle;
                     }
                 }
             }
@@ -138,25 +134,21 @@ impl Snc {
 impl BufferUser for Snc {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        self.out_buffer.lock().unwrap().write(data.into());
+        self.comms.send(data.into());
     }
 
     /// reads from the input buffer
-    fn read(&mut self) -> Option<Packet> {
-        self.in_buffer.lock().unwrap().read()
+    fn read(&mut self) -> Packet {
+        self.comms.receive()
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        let mut received_packet = None;
+        let mut p: Packet = [0, 0, 0, 0].into();
 
-        while received_packet.is_none() {
-            if let Some(in_packet) = self.read() {
-                if in_packet.control_byte() == control_byte {
-                    received_packet = Some(in_packet);
-                }
-            }
+        while p.control_byte() != control_byte {
+            p = self.read();
         }
 
-        received_packet.unwrap()
+        p
     }
 }

@@ -1,4 +1,6 @@
-use std::time::SystemTime;
+use std::{f32::consts::PI, time::SystemTime};
+
+use crate::components::constants;
 
 #[derive(Debug)]
 pub struct Wheels {
@@ -8,7 +10,7 @@ pub struct Wheels {
     right_distance: f32,
     rotation: f32,
     total_distance: f32,
-    axle_dist: f32,
+    _axle_dist: f32,
     time: SystemTime,
 }
 
@@ -21,7 +23,7 @@ impl Wheels {
             right_distance: 0.0,
             rotation: 0.0,
             total_distance: 0.0,
-            axle_dist: axle_distance,
+            _axle_dist: axle_distance,
             time: SystemTime::now(),
         }
     }
@@ -51,11 +53,11 @@ impl Wheels {
     }
 
     pub fn get_distance(&self) -> u16 {
-        self.total_distance as u16
+        self.total_distance.abs() as u16
     }
 
     pub fn get_rotation(&self) -> u16 {
-        self.rotation.floor() as u16
+        (self.rotation.abs() * (180.0 / PI)).floor() as u16
     }
 
     pub fn get_left(&self) -> i16 {
@@ -80,10 +82,12 @@ impl Wheels {
             self.right_distance += time.as_secs_f32() * (self.right_speed as f32);
 
             let linear_speed = (self.left_speed + self.right_speed) as f32 / 2.0;
+            let angular_velocity =
+                (self.right_speed - self.left_speed) as f32 / (constants::AXLE_DIST as f32);
 
             self.total_distance += time.as_secs_f32() * linear_speed;
 
-            self.rotation = self.right_distance / (self.axle_dist / 2.0);
+            self.rotation += time.as_secs_f32() * angular_velocity;
         }
     }
 }

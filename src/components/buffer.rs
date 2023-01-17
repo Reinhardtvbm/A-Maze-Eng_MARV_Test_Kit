@@ -47,6 +47,10 @@ impl Buffer {
     pub fn peek(&self) -> Option<&Packet> {
         self.0.back()
     }
+
+    pub fn empty(&self) -> bool {
+        self.0.len() == 0
+    }
 }
 
 /// A trait which defines the shared write and read
@@ -58,6 +62,6 @@ impl Buffer {
 /// will be read from / written to.
 pub trait BufferUser {
     fn write(&mut self, data: [u8; 4]);
-    fn read(&mut self) -> Option<Packet>;
+    fn read(&mut self) -> Packet;
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet;
 }

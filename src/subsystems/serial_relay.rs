@@ -1,23 +1,21 @@
-use std::sync::Arc;
-
 use crate::components::{
-    buffer::{BufferUser, SharedBuffer},
-    comm_port::ComPort,
+    buffer::BufferUser,
+    comm_port::{ComPort, ControlByte},
     packet::Packet,
 };
 
+use super::comms_channel::CommsChannel;
+
 pub struct SerialRelay {
     port: ComPort,
-    in_buffer: SharedBuffer,
-    out_buffer: SharedBuffer,
+    comms: CommsChannel,
 }
 
 impl SerialRelay {
-    pub fn new(out_buffer: &SharedBuffer, in_buffer: &SharedBuffer, com_no: String) -> Self {
+    pub fn new(comms: CommsChannel, com_no: String) -> Self {
         Self {
             port: ComPort::new(com_no, 19200),
-            in_buffer: Arc::clone(in_buffer),
-            out_buffer: Arc::clone(out_buffer),
+            comms,
         }
     }
 
@@ -27,8 +25,15 @@ impl SerialRelay {
                 self.write(packet.into());
             }
 
-            if let Some(packet) = self.read() {
-                self.port.write(&packet.into()).unwrap()
+            let write_to_port = match self.comms.is_empty() {
+                true => None,
+                false => Some(self.read()),
+            };
+
+            if let Some(packet) = write_to_port {
+                self.port
+                    .write(&packet.into())
+                    .expect("FATAL: Serial relay could not write to serial port");
             }
         }
     }
@@ -37,28 +42,21 @@ impl SerialRelay {
 impl BufferUser for SerialRelay {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        self.out_buffer.lock().unwrap().write(data.into());
+        self.comms.send(data.into());
     }
 
     /// reads from the input buffer
-    fn read(&mut self) -> Option<Packet> {
-        self.in_buffer.lock().unwrap().read()
+    fn read(&mut self) -> Packet {
+        self.comms.receive()
     }
 
-    fn wait_for_packet(
-        &mut self,
-        control_byte: crate::components::comm_port::ControlByte,
-    ) -> Packet {
-        let mut received_packet = None;
+    fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
+        let mut p: Packet = [0, 0, 0, 0].into();
 
-        while received_packet.is_none() {
-            if let Some(in_packet) = self.read() {
-                if in_packet.control_byte() == control_byte {
-                    received_packet = Some(in_packet);
-                }
-            }
+        while p.control_byte() != control_byte {
+            p = self.read();
         }
 
-        received_packet.unwrap()
+        p
     }
 }

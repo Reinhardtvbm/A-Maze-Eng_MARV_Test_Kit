@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 serialport = "4.2.0"    # for using the serial port interface on the PC
 eframe = "0.20.1"       # a GUI framework that uses egui
+crossbeam = "0.8.2"     # concurrency tools

@@ -7,25 +7,34 @@
 
 extern crate eframe;
 
+use std::{
+    collections::VecDeque,
+    f32::consts::PI,
+    sync::{Arc, Mutex},
+};
+
 use eframe::{
-    egui::Ui,
+    egui::{self, Ui},
     epaint::{Color32, Pos2},
 };
 
 use crate::{
-    components::colour::Colour,
+    components::{
+        colour::Colour,
+        constants::{MAZE_LEFT_JUSTIFICATION, MAZE_TOP_JUSTIFICATION},
+    },
     gui::maze::MazeLineMap,
     subsystems::system::{run_system, Mode},
 };
 
-pub fn paint_navcon_qtp_1(ui: &mut Ui) {
+pub fn paint_navcon_qtp_1(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
     // INITIALISE THE MAZE
     let mut maze_map = MazeLineMap::new(4, 1);
 
     maze_map
         .add_column(vec![
             Colour::Black,
-            Colour::Green,
+            Colour::Blue,
             Colour::White,
             Colour::Red,
             Colour::Black,
@@ -39,19 +48,13 @@ pub fn paint_navcon_qtp_1(ui: &mut Ui) {
     // PAINT THE MAZE ON UI
     maze_map.paint(ui);
 
-    ui.painter().circle_filled(
-        Pos2::new(100.0, 100.0),
-        2.5,
-        Color32::from_rgb(100, 100, 100),
-    );
+    sensor_pos.into_iter().for_each(|(x, y)| {
+        ui.painter().circle_filled(
+            Pos2::new(x + MAZE_LEFT_JUSTIFICATION, y + MAZE_TOP_JUSTIFICATION),
+            2.5,
+            Color32::from_rgb(100, 100, 100),
+        );
+    });
 
-    run_system(
-        Mode::Emulate,
-        Mode::Emulate,
-        Mode::Emulate,
-        String::from('0'),
-        String::from('0'),
-        String::from('0'),
-        maze_map,
-    );
+    maze_map
 }

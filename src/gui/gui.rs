@@ -1,17 +1,34 @@
+extern crate crossbeam;
 extern crate eframe;
 
+use std::{
+    collections::VecDeque,
+    f32::consts::PI,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+
+use crossbeam::channel::{self, Receiver, Sender};
 use eframe::egui::{self, Response, Ui};
 
+use crate::subsystems::system::{run_system, Mode};
+
 use super::{
-    entry_window::EntryWindow,
+    test_windows::navcon::qtp1::paint_navcon_qtp_1,
     window_stack::{Window, WindowHistory},
 };
 
-use super::test_windows::navcon::qtp1::paint_navcon_qtp_1;
+enum QTPState {
+    Busy,
+    Idle,
+}
 
 pub struct MARVApp {
     state: WindowHistory,
-    entry_window: EntryWindow,
+    qtp_state: QTPState,
+    sensor_positions_receiver: Receiver<[(f32, f32); 5]>,
+    sensor_positions_sender: Sender<[(f32, f32); 5]>,
+    prev_sensor_positions: [(f32, f32); 5],
 }
 
 impl MARVApp {
@@ -20,9 +37,14 @@ impl MARVApp {
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
+        let (sens_tx, sens_rx) = channel::bounded(10);
+
         Self {
             state: WindowHistory::new(),
-            entry_window: EntryWindow::new(),
+            qtp_state: QTPState::Idle,
+            sensor_positions_receiver: sens_rx,
+            sensor_positions_sender: sens_tx,
+            prev_sensor_positions: [(0., 0.); 5],
         }
     }
 
@@ -110,7 +132,7 @@ impl MARVApp {
         });
     }
 
-    fn paint_navcon_qtp_1_window(&mut self, ui: &mut Ui) {
+    fn paint_navcon_qtp_1_window(&mut self, ui: &mut Ui, ctx: &egui::Context) {
         if ui.button("back").clicked() {
             self.state.pop();
         }
@@ -119,7 +141,43 @@ impl MARVApp {
 
         ui.heading("    NAVCON QTP 1");
 
-        paint_navcon_qtp_1(ui);
+        let (sens_tx, sens_rx) = channel::bounded(10);
+
+        self.sensor_positions_receiver = sens_rx;
+        self.sensor_positions_sender = sens_tx;
+
+        match self.qtp_state {
+            QTPState::Busy => {
+                for positions in &self.sensor_positions_receiver {
+                    paint_navcon_qtp_1(ui, positions);
+                    ctx.request_repaint();
+                }
+            }
+            QTPState::Idle => {
+                let maze_map = paint_navcon_qtp_1(ui, [(0., 0.); 5]);
+
+                if ui.button("start").clicked() {
+                    self.qtp_state = QTPState::Busy;
+
+                    std::thread::spawn(move || {
+                        std::thread::sleep(Duration::from_millis(5));
+
+                        run_system(
+                            Mode::Emulate,
+                            Mode::Emulate,
+                            Mode::Emulate,
+                            String::from('0'),
+                            String::from('0'),
+                            String::from('0'),
+                            maze_map,
+                            (0.1, 0.05), // in meters
+                            PI / 2.0,
+                            &self.sensor_positions_sender,
+                        );
+                    });
+                }
+            }
+        }
     }
 }
 
@@ -129,7 +187,7 @@ impl eframe::App for MARVApp {
             if let Some(window) = self.state.curr_window() {
                 match window {
                     Window::Main => self.paint_main_window(ui),
-                    Window::NAVCONQtp1 => self.paint_navcon_qtp_1_window(ui),
+                    Window::NAVCONQtp1 => self.paint_navcon_qtp_1_window(ui, ctx),
                 }
             } else {
                 self.state.push(Window::Main);

@@ -2,16 +2,21 @@
 //!     will emulate the maze robot
 
 use std::collections::VecDeque;
+
 use std::sync::{Arc, Mutex};
 
-use crate::components::buffer::{Buffer, SharedBuffer};
+use crossbeam::channel::{self, Sender};
 
-use crate::components::comm_port::ControlByte;
+use crate::components::buffer::SharedBuffer;
+
 use crate::gui::maze::MazeLineMap;
 use crate::subsystems::{
     motor_subsystem::mdps::Mdps, sensor_subsystem::ss::Ss, state_navigation::snc::Snc,
 };
 
+use super::comms_channel::CommsChannel;
+use super::motor_subsystem::wheel::Wheels;
+use super::sensor_positions::SensorPosComputer;
 use super::serial_relay::SerialRelay;
 
 #[derive(Debug, PartialEq)]
@@ -34,89 +39,66 @@ pub fn run_system(
     snc_mode: Mode,
     mdps_mode: Mode,
     ss_mode: Mode,
-    snc_com: String,
-    ss_com: String,
-    mdps_com: String,
+    _snc_com: String,
+    _ss_com: String,
+    _mdps_com: String,
     maze: MazeLineMap,
+    _start_pos: (f32, f32),
+    _start_angle: f32,
+    gui_sender: &Sender<[(f32, f32); 5]>,
 ) {
     // declare each subsystem's I/O buffers
-    let snc_input_buffer = Arc::new(Mutex::new(Buffer::new()));
-    let ss_input_buffer = Arc::new(Mutex::new(Buffer::new()));
-    let mdps_input_buffer = Arc::new(Mutex::new(Buffer::new()));
+    let (mdps_tx1, ss_rx1) = channel::bounded(10);
+    let (mdps_tx2, snc_rx1) = channel::bounded(10);
 
-    let snc_output_buffer = Arc::new(Mutex::new(Buffer::new()));
-    let ss_output_buffer = Arc::new(Mutex::new(Buffer::new()));
-    let mdps_output_buffer = Arc::new(Mutex::new(Buffer::new()));
+    let (ss_tx1, mdps_rx1) = channel::bounded(10);
+    let (ss_tx2, snc_rx2) = channel::bounded(10);
 
-    let wheel_info = Arc::new(Mutex::new(VecDeque::new()));
+    let (snc_tx1, ss_rx2) = channel::bounded(10);
+    let (snc_tx2, mdps_rx2) = channel::bounded(10);
+
+    // let (sensor_positions_tx, sensor_positions_rx) = channel::bounded(1);
+    let (wheel_tx, wheel_rx) = channel::bounded(10);
+
+    let sensor_position_computer = SensorPosComputer::new();
+
+    let snc_comms = CommsChannel::new((snc_tx1, snc_tx2), (snc_rx1, snc_rx2));
+    let ss_comms = CommsChannel::new((ss_tx1, ss_tx2), (ss_rx1, ss_rx2));
+    let mdps_comms = CommsChannel::new((mdps_tx1, mdps_tx2), (mdps_rx1, mdps_rx2));
+
+    let wheels = Wheels::new(10.0);
 
     // run their emulations if required, or setup a serial port relay if not
     match snc_mode {
         Mode::Emulate => {
-            let mut snc = Snc::new(&snc_output_buffer, &snc_input_buffer);
+            let mut snc = Snc::new(snc_comms);
             std::thread::spawn(move || snc.run());
         }
         Mode::Physical => {
-            let mut relay = SerialRelay::new(&snc_output_buffer, &snc_input_buffer, snc_com);
+            let mut relay = SerialRelay::new(snc_comms, String::from("10"));
             std::thread::spawn(move || relay.run());
         }
     }
 
     match ss_mode {
         Mode::Emulate => {
-            let mut ss = Ss::new(
-                &ss_output_buffer,
-                &ss_input_buffer,
-                [(0., 0.); 5],
-                &wheel_info,
-            );
-            std::thread::spawn(move || ss.run(&maze));
+            let mut ss = Ss::new(ss_comms, sensor_position_computer, wheel_rx);
+            std::thread::spawn(move || ss.run(&maze, gui_sender));
         }
         Mode::Physical => {
-            let mut relay = SerialRelay::new(&ss_output_buffer, &ss_input_buffer, ss_com);
+            let mut relay = SerialRelay::new(ss_comms, String::from("10"));
             std::thread::spawn(move || relay.run());
         }
     }
 
     match mdps_mode {
         Mode::Emulate => {
-            let mut mdps = Mdps::new(&mdps_output_buffer, &mdps_input_buffer, &wheel_info);
-            std::thread::spawn(move || mdps.run());
+            let mut mdps = Mdps::new(mdps_comms, wheels);
+            std::thread::spawn(move || mdps.run(wheel_tx));
         }
         Mode::Physical => {
-            let mut relay = SerialRelay::new(&mdps_output_buffer, &mdps_input_buffer, mdps_com);
+            let mut relay = SerialRelay::new(mdps_comms, String::from("10"));
             std::thread::spawn(move || relay.run());
-        }
-    }
-
-    let mut maze_end = false;
-
-    while !maze_end {
-        let snc_data = snc_output_buffer.lock().unwrap().read();
-        let ss_data = ss_output_buffer.lock().unwrap().read();
-        let mdps_data = mdps_output_buffer.lock().unwrap().read();
-
-        if let Some(packet) = snc_data {
-            // println!("snc data: {:?}", packet);
-
-            ss_input_buffer.lock().unwrap().write(packet);
-            mdps_input_buffer.lock().unwrap().write(packet);
-        }
-
-        if let Some(packet) = ss_data {
-            // println!("ss data: {:?}", packet);
-            snc_input_buffer.lock().unwrap().write(packet);
-            mdps_input_buffer.lock().unwrap().write(packet);
-
-            if packet.control_byte() == ControlByte::MazeEndOfMaze {
-                maze_end = true;
-            }
-        }
-
-        if let Some(packet) = mdps_data {
-            // println!("mdps data: {:?}", packet);
-            ss_input_buffer.lock().unwrap().write(packet);
-            snc_input_buffer.lock().unwrap().write(packet);
         }
     }
 }
