@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::{f32::consts::PI, time::SystemTime};
 
 use crossbeam::channel::{Receiver, Sender};
 
@@ -15,7 +15,7 @@ pub struct SensorPosComputer {
 }
 
 impl SensorPosComputer {
-    pub fn new() -> Self {
+    pub fn new(init_x: f32, init_y: f32) -> Self {
         let inside_rad: f32 =
             ((AXLE_DIST as f32).powi(2) + (S_ISD as f32).powi(2)).sqrt() / 1_000.0;
         let outside_rad: f32 =
@@ -35,9 +35,9 @@ impl SensorPosComputer {
         Self {
             time: SystemTime::now(),
             prev_angular_velocity: 0.,
-            x: 0.,
-            y: 0.,
-            angle: 0.,
+            x: init_x,
+            y: init_y,
+            angle: PI / 2.0,
             sensor_rads,
         }
     }
@@ -45,9 +45,12 @@ impl SensorPosComputer {
     pub fn compute_pos(
         &mut self,
         wheel_info: Receiver<(i16, i16)>,
-        positions: Sender<[(f32, f32); 5]>,
+        positions_ss: Sender<[(f32, f32); 5]>,
+        positions_gui: Sender<[(f32, f32); 5]>,
     ) {
         for (left_speed, right_speed) in wheel_info {
+            println!("got wheels");
+
             if left_speed == -right_speed {
                 println!("rotating");
             }
@@ -56,14 +59,16 @@ impl SensorPosComputer {
 
             self.time = SystemTime::now();
 
-            let angular_velocity = (right_speed - left_speed) as f32 / (AXLE_DIST as f32 / 1_000.0);
+            let angular_velocity =
+                ((right_speed - left_speed) as f32 / 1_000.0) / (AXLE_DIST as f32 / 1_000.0);
 
-            let linear_velocity = (right_speed + left_speed) as f32 / 2.0;
+            let linear_velocity = ((right_speed + left_speed) as f32 / 1_000.0) / 2.0;
 
             // trapezoidal rule for integrals
             self.angle += elapsed_time * ((self.prev_angular_velocity + angular_velocity) / 2.0);
             self.x += elapsed_time * linear_velocity * self.angle.cos();
             self.y += elapsed_time * linear_velocity * self.angle.sin();
+            println!("sending ({}, {})", self.x, self.y);
 
             // update sensor_positions
             let sens_positions: Vec<(f32, f32)> = self
@@ -72,9 +77,9 @@ impl SensorPosComputer {
                 .map(|(rad, a)| {
                     (
                         (self.x + ((*rad) * (self.angle + a).cos()) as f32)
-                            / (0.2 / MAZE_COL_WIDTH),
+                            * (MAZE_COL_WIDTH / 0.2),
                         (self.y + ((*rad) * (self.angle + a).sin()) as f32)
-                            / (0.2 / MAZE_COL_WIDTH),
+                            * (MAZE_COL_WIDTH / 0.2),
                     )
                 })
                 .collect();
@@ -85,8 +90,12 @@ impl SensorPosComputer {
                 sens_positions.try_into();
 
             if let Ok(sens_positions) = sensor_final_positions {
-                if positions.send(sens_positions).is_err() {
-                    panic!("FATAL: position could not be sent!");
+                if positions_ss.send(sens_positions).is_err() {
+                    panic!("FATAL: position could not be sent to SS!");
+                }
+
+                if positions_gui.send(sens_positions).is_err() {
+                    panic!("FATAL: position could not be sent to GUI!");
                 }
             }
         }

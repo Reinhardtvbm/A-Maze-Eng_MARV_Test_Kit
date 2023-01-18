@@ -178,20 +178,10 @@ impl NavCon {
                 self.current_state = NavConState::Stop;
             }
             NavConState::Stop => {
-                println!(
-                    "stop, \nprev: {:?}\ncurr: {:?}\nnext: {:?}",
-                    self.previous_state, self.current_state, self.next_state
-                );
-
                 self.current_state = match self.previous_state {
                     NavConState::Forward => NavConState::Reverse,
                     _ => self.next_state,
                 };
-
-                println!(
-                    "stop, \nprev: {:?}\ncurr: {:?}\nnext: {:?}\n\n",
-                    self.previous_state, self.current_state, self.next_state
-                );
             }
             NavConState::RotateLeft => {
                 self.current_state = NavConState::Forward;

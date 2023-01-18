@@ -1,10 +1,6 @@
 //! The bread and butter of the program:
 //!     will emulate the maze robot
 
-use std::collections::VecDeque;
-
-use std::sync::{Arc, Mutex};
-
 use crossbeam::channel::{self, Sender};
 
 use crate::components::buffer::SharedBuffer;
@@ -43,9 +39,9 @@ pub fn run_system(
     _ss_com: String,
     _mdps_com: String,
     maze: MazeLineMap,
-    _start_pos: (f32, f32),
+    start_pos: (f32, f32),
     _start_angle: f32,
-    gui_sender: &Sender<[(f32, f32); 5]>,
+    gui_sender: Sender<[(f32, f32); 5]>,
 ) {
     // declare each subsystem's I/O buffers
     let (mdps_tx1, ss_rx1) = channel::bounded(10);
@@ -58,9 +54,9 @@ pub fn run_system(
     let (snc_tx2, mdps_rx2) = channel::bounded(10);
 
     // let (sensor_positions_tx, sensor_positions_rx) = channel::bounded(1);
-    let (wheel_tx, wheel_rx) = channel::bounded(10);
+    let (wheel_tx, wheel_rx) = channel::bounded(100);
 
-    let sensor_position_computer = SensorPosComputer::new();
+    let sensor_position_computer = SensorPosComputer::new(start_pos.0, start_pos.1);
 
     let snc_comms = CommsChannel::new((snc_tx1, snc_tx2), (snc_rx1, snc_rx2));
     let ss_comms = CommsChannel::new((ss_tx1, ss_tx2), (ss_rx1, ss_rx2));
@@ -82,8 +78,8 @@ pub fn run_system(
 
     match ss_mode {
         Mode::Emulate => {
-            let mut ss = Ss::new(ss_comms, sensor_position_computer, wheel_rx);
-            std::thread::spawn(move || ss.run(&maze, gui_sender));
+            let mut ss = Ss::new(ss_comms, sensor_position_computer, wheel_rx, gui_sender);
+            std::thread::spawn(move || ss.run(&maze));
         }
         Mode::Physical => {
             let mut relay = SerialRelay::new(ss_comms, String::from("10"));

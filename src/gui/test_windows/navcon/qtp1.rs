@@ -7,14 +7,8 @@
 
 extern crate eframe;
 
-use std::{
-    collections::VecDeque,
-    f32::consts::PI,
-    sync::{Arc, Mutex},
-};
-
 use eframe::{
-    egui::{self, Ui},
+    egui::Ui,
     epaint::{Color32, Pos2},
 };
 
@@ -24,7 +18,6 @@ use crate::{
         constants::{MAZE_LEFT_JUSTIFICATION, MAZE_TOP_JUSTIFICATION},
     },
     gui::maze::MazeLineMap,
-    subsystems::system::{run_system, Mode},
 };
 
 pub fn paint_navcon_qtp_1(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
@@ -34,7 +27,7 @@ pub fn paint_navcon_qtp_1(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineM
     maze_map
         .add_column(vec![
             Colour::Black,
-            Colour::Blue,
+            Colour::Green,
             Colour::White,
             Colour::Red,
             Colour::Black,

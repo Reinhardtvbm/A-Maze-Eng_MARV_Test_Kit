@@ -10,6 +10,7 @@ pub const B_ISD: u16 = 65; // in mm
 pub const S_ISD: u16 = 15; // in mm
 pub const AXLE_DIST: i16 = 100; // in mm
 pub const CAL_COLOURS: [u8; 4] = [113, 0, 0, 0];
+pub const CAL_CALIBRATED: [u8; 4] = [112, 0, 0, 0];
 
 impl Constants {
     pub fn inter_sensor_distance() -> u16 {

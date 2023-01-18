@@ -2,8 +2,13 @@ use crossbeam::channel::{self, Receiver, Sender};
 
 use crate::{
     components::{
-        adjacent_bytes::AdjacentBytes, buffer::BufferUser, colour::Colour, comm_port::ControlByte,
-        constants::CAL_COLOURS, packet::Packet, state::SystemState,
+        adjacent_bytes::AdjacentBytes,
+        buffer::BufferUser,
+        colour::Colour,
+        comm_port::ControlByte,
+        constants::{CAL_CALIBRATED, CAL_COLOURS},
+        packet::Packet,
+        state::SystemState,
     },
     gui::maze::MazeLineMap,
     subsystems::{comms_channel::CommsChannel, sensor_positions::SensorPosComputer},
@@ -21,10 +26,11 @@ impl Ss {
         comms: CommsChannel,
         mut position_calculator: SensorPosComputer,
         wheel_receiver: Receiver<(i16, i16)>,
+        gui_tx: Sender<[(f32, f32); 5]>,
     ) -> Self {
         let (pos_tx, pos_rx) = channel::bounded(1);
 
-        std::thread::spawn(move || position_calculator.compute_pos(wheel_receiver, pos_tx));
+        std::thread::spawn(move || position_calculator.compute_pos(wheel_receiver, pos_tx, gui_tx));
 
         Self {
             state: SystemState::Idle,
@@ -33,44 +39,49 @@ impl Ss {
         }
     }
 
-    pub fn run(&mut self, maze: &MazeLineMap, positions_relay: &Sender<[(f32, f32); 5]>) {
+    pub fn run(&mut self, maze: &MazeLineMap) {
         let mut end_of_maze = false;
 
         while !end_of_maze {
             match self.state {
                 SystemState::Idle => {
                     /* IDLE */
-                    let packet = self.read();
+                    let packet = self.wait_for_packet(16.into());
                     // if the control byte is correct, and a touch has been sensed
-                    if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
-                        self.write([112, 0, 0, 0]);
-                        self.wait_for_packet(96.into());
+                    if packet.dat1() == 1 {
                         self.state = SystemState::Calibrate;
                     }
                 }
                 SystemState::Calibrate => {
                     /* CALIBRATE */
-
+                    self.write(CAL_CALIBRATED);
                     self.wait_for_packet(97.into());
-
                     self.write(CAL_COLOURS);
 
-                    if self.wait_for_packet(80.into()).dat1() == 1 {
-                        self.state = SystemState::Maze;
+                    while self.wait_for_packet(80.into()).dat1() != 1 {
+                        /* WAITING */
+                        self.wait_for_packet(97.into());
+                        self.write(CAL_COLOURS);
                     }
+
+                    self.state = SystemState::Maze;
                 }
                 SystemState::Maze => {
                     /* MAZE */
 
                     let mut colours = Vec::new();
                     let latest_positions = self.positions_receiver.recv().unwrap();
-                    positions_relay.send(latest_positions);
+
+                    println!("{:?}", latest_positions);
 
                     // get the colours under each sensor
                     latest_positions.iter().for_each(|sensor_pos| {
                         colours.push(
-                            maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
-                                .expect("FATAL: colour in maze not found"),
+                            maze.get_colour_from_coord(
+                                sensor_pos.0 / 2.3529411,
+                                sensor_pos.1 / 2.3529411,
+                            )
+                            .expect("FATAL: colour in maze not found"),
                         )
                     });
 
@@ -114,15 +125,19 @@ impl Ss {
 impl BufferUser for Ss {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
+        println!("SS sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
-        self.comms.receive()
+        let p = self.comms.receive();
+        println!("SS got {:?}", p);
+        p
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
+        println!("SS waiting for packet ({:?})", control_byte);
         let mut p: Packet = [0, 0, 0, 0].into();
 
         while p.control_byte() != control_byte {

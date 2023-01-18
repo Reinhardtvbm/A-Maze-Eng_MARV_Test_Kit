@@ -22,6 +22,8 @@ impl CommsChannel {
     }
 
     pub fn send(&self, p: Packet) {
+        //println!("sending {:?}", p);
+
         self.out_data
             .0
             .send(p)
@@ -44,7 +46,7 @@ impl CommsChannel {
             }
         }
 
-        println!("buffer data: {:?}", self.in_buffer);
+        //println!("buffer data: {:?}", self.in_buffer);
 
         self.in_buffer.read().unwrap()
     }

@@ -56,12 +56,10 @@ impl Snc {
                 }
                 SystemState::Calibrate => {
                     /* CALIBRATE */
-                    let packet = self.read();
-                    // ControlByte::CalibrateColours = 113
-                    if packet.control_byte() == ControlByte::CalibrateColours {
-                        self.write([80, 1, 0, 0]);
-                        self.state = SystemState::Maze;
-                    }
+                    self.wait_for_packet(113.into());
+
+                    self.write([80, 1, 0, 0]);
+                    self.state = SystemState::Maze;
                 }
                 SystemState::Maze => {
                     /* MAZE */
@@ -134,15 +132,19 @@ impl Snc {
 impl BufferUser for Snc {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
+        println!("SNC sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
-        self.comms.receive()
+        let p = self.comms.receive();
+        println!("SNC got {:?}", p);
+        p
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
+        println!("SNC waiting for packet ({:?})", control_byte);
         let mut p: Packet = [0, 0, 0, 0].into();
 
         while p.control_byte() != control_byte {

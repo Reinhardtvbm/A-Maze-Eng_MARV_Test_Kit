@@ -47,10 +47,10 @@ impl Mdps {
             match self.state {
                 SystemState::Idle => {
                     /* Idle things */
-                    let packet = self.read();
-
+                    /* IDLE */
+                    let packet = self.wait_for_packet(16.into());
                     // if the control byte is correct, and a touch has been sensed
-                    if packet.control_byte() == ControlByte::IdleButton && packet.dat1() == 1 {
+                    if packet.dat1() == 1 {
                         self.operational_velocity = packet.dat0();
                         self.state = SystemState::Calibrate;
                     }
@@ -66,10 +66,15 @@ impl Mdps {
                         0,
                     ]);
 
-                    self.write([u8::from(ControlByte::CalibrateBatteryLevel), 0, 0, 0]);
+                    self.write([96, 0, 0, 0]);
+                    self.write([97, 0, 0, 0]);
 
-                    while self.wait_for_packet(80.into()).dat1() == 0 {
+                    self.wait_for_packet(113.into());
+
+                    while self.wait_for_packet(80.into()).dat1() != 1 {
                         /* wait for go to Maze state */
+                        self.write([97, 0, 0, 0]);
+                        self.wait_for_packet(113.into());
                     }
 
                     self.state = SystemState::Maze;
@@ -134,6 +139,8 @@ impl Mdps {
 
                                     wheel_speeds
                                         .send((self.wheels.get_left(), self.wheels.get_right())).expect("FATAL: mdps run thread could not send data to sensor positions calculator thread");
+
+                                    println!("MDPS thread sending wheels");
                                 }
                             }
 
@@ -209,15 +216,19 @@ impl Mdps {
 impl BufferUser for Mdps {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
+        println!("MDPS sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
-        self.comms.receive()
+        let p = self.comms.receive();
+        println!("MDPS got {:?}", p);
+        p
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
+        println!("MDPS waiting for packet ({:?})", control_byte);
         let mut p: Packet = [0, 0, 0, 0].into();
 
         while p.control_byte() != control_byte {

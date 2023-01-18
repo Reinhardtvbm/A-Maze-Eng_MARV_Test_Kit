@@ -1,14 +1,9 @@
 extern crate crossbeam;
 extern crate eframe;
 
-use std::{
-    collections::VecDeque,
-    f32::consts::PI,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{f32::consts::PI, time::Duration};
 
-use crossbeam::channel::{self, Receiver, Sender};
+use crossbeam::channel::{self, Receiver};
 use eframe::egui::{self, Response, Ui};
 
 use crate::subsystems::system::{run_system, Mode};
@@ -27,8 +22,6 @@ pub struct MARVApp {
     state: WindowHistory,
     qtp_state: QTPState,
     sensor_positions_receiver: Receiver<[(f32, f32); 5]>,
-    sensor_positions_sender: Sender<[(f32, f32); 5]>,
-    prev_sensor_positions: [(f32, f32); 5],
 }
 
 impl MARVApp {
@@ -37,14 +30,12 @@ impl MARVApp {
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
-        let (sens_tx, sens_rx) = channel::bounded(10);
+        let (_, sens_rx) = channel::bounded(10);
 
         Self {
             state: WindowHistory::new(),
             qtp_state: QTPState::Idle,
             sensor_positions_receiver: sens_rx,
-            sensor_positions_sender: sens_tx,
-            prev_sensor_positions: [(0., 0.); 5],
         }
     }
 
@@ -141,20 +132,23 @@ impl MARVApp {
 
         ui.heading("    NAVCON QTP 1");
 
-        let (sens_tx, sens_rx) = channel::bounded(10);
-
-        self.sensor_positions_receiver = sens_rx;
-        self.sensor_positions_sender = sens_tx;
-
         match self.qtp_state {
             QTPState::Busy => {
                 for positions in &self.sensor_positions_receiver {
+                    println!("painting with: {:?}", positions);
                     paint_navcon_qtp_1(ui, positions);
                     ctx.request_repaint();
+
+                    if positions[0].1 > 1000.0 {
+                        break;
+                    }
                 }
             }
             QTPState::Idle => {
-                let maze_map = paint_navcon_qtp_1(ui, [(0., 0.); 5]);
+                let maze_map = paint_navcon_qtp_1(ui, [(0.1, 0.05); 5]);
+
+                let (sens_tx, sens_rx) = channel::bounded(10);
+                self.sensor_positions_receiver = sens_rx;
 
                 if ui.button("start").clicked() {
                     self.qtp_state = QTPState::Busy;
@@ -172,7 +166,7 @@ impl MARVApp {
                             maze_map,
                             (0.1, 0.05), // in meters
                             PI / 2.0,
-                            &self.sensor_positions_sender,
+                            sens_tx,
                         );
                     });
                 }
