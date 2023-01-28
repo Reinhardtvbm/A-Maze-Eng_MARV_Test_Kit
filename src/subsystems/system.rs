@@ -63,16 +63,17 @@ pub fn run_system(
     let mdps_comms = CommsChannel::new((mdps_tx1, mdps_tx2), (mdps_rx1, mdps_rx2));
 
     let wheels = Wheels::new(10.0);
+    let thread;
 
     // run their emulations if required, or setup a serial port relay if not
     match snc_mode {
         Mode::Emulate => {
             let mut snc = Snc::new(snc_comms);
-            std::thread::spawn(move || snc.run());
+            thread = std::thread::spawn(move || snc.run());
         }
         Mode::Physical => {
             let mut relay = SerialRelay::new(snc_comms, String::from("10"));
-            std::thread::spawn(move || relay.run());
+            thread = std::thread::spawn(move || relay.run());
         }
     }
 
@@ -97,4 +98,7 @@ pub fn run_system(
             std::thread::spawn(move || relay.run());
         }
     }
+
+    thread.join().expect("could not join SNC thread");
+    println!("system function ended");
 }

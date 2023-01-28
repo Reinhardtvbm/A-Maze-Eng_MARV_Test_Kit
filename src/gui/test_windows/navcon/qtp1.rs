@@ -28,7 +28,7 @@ pub fn generate_navcon_qtp_1_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> M
         .add_column(vec![
             Colour::Black,
             Colour::Green,
-            Colour::White,
+            Colour::Blue,
             Colour::Red,
             Colour::Black,
         ])

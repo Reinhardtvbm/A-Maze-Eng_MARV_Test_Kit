@@ -45,7 +45,7 @@ impl Mdps {
     }
 
     pub fn run(&mut self, wheel_speeds: Sender<(i16, i16)>) {
-        let end_of_maze: bool = false;
+        let mut end_of_maze = false;
 
         while !end_of_maze {
             match self.state {
@@ -137,7 +137,7 @@ impl Mdps {
                                     wheel_speeds
                                         .send((self.wheels.get_left(), self.wheels.get_right())).expect("FATAL: mdps run thread could not send data to sensor positions calculator thread");
 
-                                    println!("MDPS thread sending wheels");
+                                    //println!("MDPS thread sending wheels");
                                 }
                             }
 
@@ -184,7 +184,7 @@ impl Mdps {
                                 0,
                             ]);
                         }
-                        ControlByte::MazeEndOfMaze => self.state = SystemState::Idle,
+                        ControlByte::MazeEndOfMaze => end_of_maze = true,
                         _ => (),
                     }
                 }
@@ -207,25 +207,27 @@ impl Mdps {
                 }
             }
         }
+
+        println!("MDPS run function ended");
     }
 }
 
 impl BufferUser for Mdps {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        println!("MDPS sending...");
+        //println!("MDPS sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
         let p = self.comms.receive();
-        println!("MDPS got {:?}", p);
+        //println!("MDPS got {:?}", p);
         p
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        println!("MDPS waiting for packet ({:?})", control_byte);
+        //println!("MDPS waiting for packet ({:?})", control_byte);
         let mut p: Packet = [0, 0, 0, 0].into();
 
         while p.control_byte() != control_byte {

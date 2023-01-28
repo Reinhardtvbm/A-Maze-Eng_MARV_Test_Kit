@@ -51,9 +51,9 @@ impl SensorPosComputer {
         for (left_speed, right_speed) in wheel_info {
             println!("got wheels");
 
-            if left_speed == -right_speed {
-                println!("rotating");
-            }
+            // if left_speed == -right_speed {
+            //     println!("rotating");
+            // }
 
             let elapsed_time = self.time.elapsed().unwrap().as_millis() as f32 / 1_000.0; // s
 
@@ -68,7 +68,7 @@ impl SensorPosComputer {
             self.angle += elapsed_time * ((self.prev_angular_velocity + angular_velocity) / 2.0);
             self.x += elapsed_time * linear_velocity * self.angle.cos();
             self.y += elapsed_time * linear_velocity * self.angle.sin();
-            println!("sending ({}, {})", self.x, self.y);
+            //println!("sending ({}, {})", self.x, self.y);
 
             // update sensor_positions
             let sens_positions: Vec<(f32, f32)> = self
@@ -99,5 +99,7 @@ impl SensorPosComputer {
                 }
             }
         }
+
+        println!("compute pos end");
     }
 }

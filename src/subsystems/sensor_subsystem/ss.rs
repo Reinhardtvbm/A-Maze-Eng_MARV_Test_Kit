@@ -72,18 +72,18 @@ impl Ss {
                     let mut colours = Vec::new();
                     let latest_positions = self.positions_receiver.recv().unwrap();
 
-                    println!("{:?}", latest_positions);
+                    //println!("{:?}", latest_positions);
 
                     // get the colours under each sensor
                     latest_positions.iter().for_each(|sensor_pos| {
                         colours.push(
-                            maze.get_colour_from_coord(
-                                sensor_pos.0 / 2.3529411,
-                                sensor_pos.1 / 2.3529411,
-                            )
-                            .expect("FATAL: colour in maze not found"),
+                            maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
+                                .expect("FATAL: colour in maze not found"),
                         )
                     });
+
+                    println!("positions: {:?}", latest_positions);
+                    println!("colours: {:?}", colours);
 
                     if colours.iter().all(|colour| *colour == Colour::Red) {
                         end_of_maze = true;
@@ -119,25 +119,27 @@ impl Ss {
                 SystemState::Sos => todo!(),
             }
         }
+
+        println!("SS run function ended");
     }
 }
 
 impl BufferUser for Ss {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        println!("SS sending...");
+        //println!("SS sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
         let p = self.comms.receive();
-        println!("SS got {:?}", p);
+        //println!("SS got {:?}", p);
         p
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        println!("SS waiting for packet ({:?})", control_byte);
+        //println!("SS waiting for packet ({:?})", control_byte);
         let mut p: Packet = [0, 0, 0, 0].into();
 
         while p.control_byte() != control_byte {
