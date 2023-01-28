@@ -1,12 +1,15 @@
 extern crate crossbeam;
 extern crate eframe;
 
-use std::{f32::consts::PI, time::Duration};
+use std::{f32::consts::PI, thread::JoinHandle, time::Duration};
 
 use crossbeam::channel::{self, Receiver};
 use eframe::egui::{self, Response, Ui};
 
-use crate::subsystems::system::{run_system, Mode};
+use crate::{
+    components::colour::Colour,
+    subsystems::system::{run_system, Mode},
+};
 
 use super::{
     test_windows::navcon::qtp1::paint_navcon_qtp_1,
@@ -22,6 +25,7 @@ pub struct MARVApp {
     state: WindowHistory,
     qtp_state: QTPState,
     sensor_positions_receiver: Receiver<[(f32, f32); 5]>,
+    test_thread: Option<JoinHandle<()>>,
 }
 
 impl MARVApp {
@@ -36,6 +40,7 @@ impl MARVApp {
             state: WindowHistory::new(),
             qtp_state: QTPState::Idle,
             sensor_positions_receiver: sens_rx,
+            test_thread: None,
         }
     }
 
@@ -134,18 +139,30 @@ impl MARVApp {
 
         match self.qtp_state {
             QTPState::Busy => {
-                for positions in &self.sensor_positions_receiver {
-                    println!("painting with: {:?}", positions);
-                    paint_navcon_qtp_1(ui, positions);
-                    ctx.request_repaint();
+                let positions = self.sensor_positions_receiver.recv().unwrap();
 
-                    if positions[0].1 > 1000.0 {
-                        break;
-                    }
+                //println!("painting with: {:?}", positions);
+                let maze = paint_navcon_qtp_1(ui, positions);
+
+                //println!("{:?}", latest_positions);
+                let mut colours = Vec::new();
+
+                // get the colours under each sensor
+                positions.iter().for_each(|sensor_pos| {
+                    colours.push(
+                        maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
+                            .expect("FATAL: colour in maze not found"),
+                    )
+                });
+
+                if positions[0].1 > 1000.0 || colours.iter().all(|colour| *colour == Colour::Red) {
+                    self.qtp_state = QTPState::Idle;
                 }
+
+                ctx.request_repaint();
             }
             QTPState::Idle => {
-                let maze_map = paint_navcon_qtp_1(ui, [(0.1, 0.05); 5]);
+                let maze_map = paint_navcon_qtp_1(ui, [(0.1, 0.01); 5]);
 
                 let (sens_tx, sens_rx) = channel::bounded(10);
                 self.sensor_positions_receiver = sens_rx;
@@ -153,7 +170,7 @@ impl MARVApp {
                 if ui.button("start").clicked() {
                     self.qtp_state = QTPState::Busy;
 
-                    std::thread::spawn(move || {
+                    self.test_thread = Some(std::thread::spawn(move || {
                         std::thread::sleep(Duration::from_millis(5));
 
                         run_system(
@@ -164,11 +181,11 @@ impl MARVApp {
                             String::from('0'),
                             String::from('0'),
                             maze_map,
-                            (0.1, 0.05), // in meters
+                            (0.1, 0.01), // in meters
                             PI / 2.0,
                             sens_tx,
                         );
-                    });
+                    }));
                 }
             }
         }

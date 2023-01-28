@@ -22,7 +22,7 @@ impl CommsChannel {
     }
 
     pub fn send(&self, p: Packet) {
-        //println!("sending {:?}", p);
+        println!("sending {:?}", p);
 
         self.out_data
             .0
@@ -45,10 +45,10 @@ impl CommsChannel {
                 self.in_buffer.write(self.in_data.1.recv().unwrap());
             }
         }
+        let p = self.in_buffer.read().unwrap();
 
-        //println!("buffer data: {:?}", self.in_buffer);
-
-        self.in_buffer.read().unwrap()
+        println!("got {:?}", p);
+        p
     }
 
     pub fn is_empty(&self) -> bool {

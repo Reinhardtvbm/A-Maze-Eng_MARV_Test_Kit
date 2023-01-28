@@ -28,7 +28,7 @@ pub fn paint_navcon_qtp_1(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineM
         .add_column(vec![
             Colour::Black,
             Colour::Green,
-            Colour::White,
+            Colour::Blue,
             Colour::Red,
             Colour::Black,
         ])

@@ -37,7 +37,7 @@ impl Snc {
     ///
     /// will most likely be changed to run asynchonously until maze completion
     pub fn run(&mut self) {
-        let end_of_maze = false;
+        let mut end_of_maze = false;
 
         let mut packets = [
             Packet::new(162, 0, 0, 0),
@@ -67,12 +67,8 @@ impl Snc {
                     self.write([145, 0, 0, 0]); // write no clap/snap sensed
                     self.write([146, 0, 0, 0]); // write no rouch
 
-                    println!("navcon start");
-
                     // run NAVCON and write output:
                     self.navcon.compute_output(packets); // NAVCON
-
-                    println!("navcon done");
 
                     // write navigation control data (Control byte = 147) based on navcon.compute_output()
                     match self.navcon.get_state() {
@@ -98,19 +94,10 @@ impl Snc {
                     // now should be synchronised
                     for packet in &mut packets {
                         *packet = self.read();
-                    }
-
-                    // if end of maze, reset the packets and return to Idle
-                    if packets[4].control_byte() == ControlByte::MazeEndOfMaze {
-                        packets = [
-                            Packet::new(162, 0, 0, 0),
-                            Packet::new(163, 0, 0, 0),
-                            Packet::new(164, 0, 0, 0),
-                            Packet::new(177, 0, 0, 0),
-                            Packet::new(178, 0, 0, 0),
-                        ];
-
-                        self.state = SystemState::Idle;
+                        if (*packet).control_byte() == ControlByte::MazeEndOfMaze {
+                            end_of_maze = true;
+                            break;
+                        }
                     }
 
                     // --------------------------------------------------------------------------------------------
@@ -126,25 +113,27 @@ impl Snc {
                 }
             }
         }
+
+        println!("SNC run function ended");
     }
 }
 
 impl BufferUser for Snc {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        println!("SNC sending...");
+        //println!("SNC sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
         let p = self.comms.receive();
-        println!("SNC got {:?}", p);
+        //println!("SNC got {:?}", p);
         p
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        println!("SNC waiting for packet ({:?})", control_byte);
+        //println!("SNC waiting for packet ({:?})", control_byte);
         let mut p: Packet = [0, 0, 0, 0].into();
 
         while p.control_byte() != control_byte {
