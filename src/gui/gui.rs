@@ -143,29 +143,25 @@ impl MARVApp {
 
         match self.qtp_state {
             QTPState::Busy => {
-                for positions in &self.sensor_positions_receiver {
-                    println!("painting with: {:?}", positions);
-                    let maze = generate_navcon_qtp_1_maze(ui, positions);
+                let positions = self.sensor_positions_receiver.recv().unwrap();
 
-                    ctx.request_repaint();
-                    let mut colours = Vec::new();
-
-                    // get the colours under each sensor
-                    positions.iter().for_each(|sensor_pos| {
-                        colours.push(
-                            maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
-                                .expect("FATAL: colour in maze not found"),
-                        )
-                    });
-
-                    if positions[0].1 > 1000.0
-                        || colours.iter().all(|colour| *colour == Colour::Red)
-                    {
-                        self.qtp_state = QTPState::Idle;
-                    }
-                }
+                //println!("painting with: {:?}", positions);
+                let maze = generate_navcon_qtp_1_maze(ui, positions);
 
                 //println!("{:?}", latest_positions);
+                let mut colours = Vec::new();
+
+                // get the colours under each sensor
+                positions.iter().for_each(|sensor_pos| {
+                    colours.push(
+                        maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
+                            .expect("FATAL: colour in maze not found"),
+                    )
+                });
+
+                if positions[0].1 > 1000.0 || colours.iter().all(|colour| *colour == Colour::Red) {
+                    self.qtp_state = QTPState::Idle;
+                }
 
                 ctx.request_repaint();
             }
