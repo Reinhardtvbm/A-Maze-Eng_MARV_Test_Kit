@@ -26,8 +26,33 @@ pub const AXLE_DIST: i16 = 100; // length of the axle (in mm)
 // =================================================================================
 // Packets for comms
 
-pub const CAL_COLOURS: [u8; 4] = [113, 0, 0, 0];
-pub const CAL_CALIBRATED: [u8; 4] = [112, 0, 0, 0];
+type Bytes = [u8; 4];
+
+pub const HUB_START: Bytes = [0, 0, 0, 0];
+pub const HUB_END_OF_MAZE: Bytes = [1, 0, 0, 0];
+
+pub const IDLE_BUTTON_TOUCHED: Bytes = [16, 1, 0, 0];
+pub const IDLE_BUTTON_NOT_TOUCHED: Bytes = [16, 0, 0, 0];
+
+pub const CAL_CALIBRATED: Bytes = [112, 0, 0, 0];
+pub const CAL_OPERATIONAL_VELOCITY: Bytes = [96, 50, 0, 0];
+pub const CAL_BATTERY_LEVEL: Bytes = [97, 0, 0, 0];
+pub const CAL_COLOURS: Bytes = [113, 0, 0, 0];
+pub const CAL_BUTTON_TOUCHED: Bytes = [80, 1, 0, 0];
+pub const CAL_BUTTON_NOT_TOUCHED: Bytes = [80, 0, 0, 0];
+
+pub const MAZE_CLAPSNAP: Bytes = [145, 1, 0, 0];
+pub const MAZE_CLAPSNAP_NONE: Bytes = [145, 0, 0, 0];
+pub const MAZE_BUTTON_TOUCHED: Bytes = [146, 1, 0, 0];
+pub const MAZE_BUTTON_NOT_TOUCHED: Bytes = [146, 0, 0, 0];
+pub const MAZE_NAVCON_FORWARD: Bytes = [147, 50, 50, 0];
+pub const MAZE_NAVCON_REVERSE: Bytes = [147, 50, 50, 1];
+pub const MAZE_BATTERY_LEVEL: Bytes = [161, 0, 0, 0];
+pub const MAZE_END_OF_MAZE: Bytes = [179, 0, 0, 0];
+
+pub const SOS_SPEED: Bytes = [228, 0, 0, 0];
+pub const SOS_CLAPSNAP: Bytes = [208, 1, 0, 0];
+pub const SOS_CLAPSNAP_NONE: Bytes = [208, 0, 0, 0];
 
 // =================================================================================
 

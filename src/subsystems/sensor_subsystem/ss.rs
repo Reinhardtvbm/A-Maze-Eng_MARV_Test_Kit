@@ -6,7 +6,7 @@ use crate::{
         buffer::BufferUser,
         colour::Colour,
         comm_port::ControlByte,
-        constants::{CAL_CALIBRATED, CAL_COLOURS},
+        constants::{CAL_CALIBRATED, CAL_COLOURS, MAZE_END_OF_MAZE},
         packet::Packet,
         state::SystemState,
     },
@@ -102,7 +102,7 @@ impl Ss {
                     self.wait_for_packet(164.into());
 
                     if end_of_maze {
-                        self.write([179, 0, 0, 0]);
+                        self.write(MAZE_END_OF_MAZE);
                     } else {
                         let mut word: u16 = 0;
 

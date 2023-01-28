@@ -2,7 +2,11 @@ use crossbeam::channel::Sender;
 
 use crate::{
     components::{
-        adjacent_bytes::AdjacentBytes, buffer::BufferUser, comm_port::ControlByte, packet::Packet,
+        adjacent_bytes::AdjacentBytes,
+        buffer::BufferUser,
+        comm_port::ControlByte,
+        constants::{CAL_BATTERY_LEVEL, CAL_OPERATIONAL_VELOCITY, MAZE_BATTERY_LEVEL, SOS_SPEED},
+        packet::Packet,
         state::SystemState,
     },
     subsystems::{comms_channel::CommsChannel, motor_subsystem::wheel::Wheels},
@@ -59,21 +63,14 @@ impl Mdps {
                     /* Calibration things */
                     self.wait_for_packet(112.into());
 
-                    self.write([
-                        u8::from(ControlByte::CalibrateOperationalVelocity),
-                        self.operational_velocity,
-                        self.operational_velocity,
-                        0,
-                    ]);
-
-                    self.write([96, 0, 0, 0]);
-                    self.write([97, 0, 0, 0]);
+                    self.write(CAL_OPERATIONAL_VELOCITY);
+                    self.write(CAL_BATTERY_LEVEL);
 
                     self.wait_for_packet(113.into());
 
                     while self.wait_for_packet(80.into()).dat1() != 1 {
                         /* wait for go to Maze state */
-                        self.write([97, 0, 0, 0]);
+                        self.write(CAL_BATTERY_LEVEL);
                         self.wait_for_packet(113.into());
                     }
 
@@ -147,7 +144,7 @@ impl Mdps {
                             wheel_speeds.send((self.wheels.get_left(), self.wheels.get_right())).expect("FATAL: mdps run thread could not send data to sensor positions calculator thread");
 
                             // write battery level (no longer required as of 2022, so just send 0's)
-                            self.write([161, 0, 0, 0]);
+                            self.write(MAZE_BATTERY_LEVEL);
 
                             // get final rotation
                             let curr_rotation = self.wheels.get_rotation();
@@ -199,7 +196,7 @@ impl Mdps {
                     self.wheels.set_right_wheel_speed(0);
 
                     // send that we have stopped
-                    self.write([u8::from(ControlByte::SosSpeed), 0, 0, 0]);
+                    self.write(SOS_SPEED);
 
                     // wait for clap/snap
                     while self.wait_for_packet(208.into()).dat1() != 1 {
