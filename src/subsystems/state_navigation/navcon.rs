@@ -2,7 +2,7 @@ use crate::components::{
     adjacent_bytes::AdjacentBytes,
     colour::{Colour, Colours},
     comm_port::ControlByte,
-    constants::Constants,
+    constants::B_ISD,
     packet::Packet,
 };
 
@@ -93,7 +93,9 @@ impl NavCon {
         self.next_state = match side {
             Side::Left => NavConState::RotateLeft,
             Side::Right => NavConState::RotateRight,
-        }
+        };
+
+        self.previously_encountered_colour = Colour::Green;
     }
 
     fn blue_encounter(&mut self, incidence: u8, side: Side) {
@@ -108,9 +110,9 @@ impl NavCon {
             Side::Right => 90 + incidence as u16,
         };
 
-        if self.previously_encountered_colour == Colour::Blue {
-            self.output_rotation += 90;
-        }
+        // if self.previously_encountered_colour == Colour::Blue {
+        //     self.output_rotation += 90;
+        // }
 
         self.previously_encountered_colour = Colour::Blue;
     }
@@ -122,7 +124,7 @@ impl NavCon {
         colour: Colour,
         side: Side,
     ) {
-        if distance - self.reference_distance > Constants::inter_sensor_distance() {
+        if distance as i16 - self.reference_distance as i16 > B_ISD as i16 {
             self.output_rotation = 5;
             return;
         }
@@ -170,7 +172,7 @@ impl NavCon {
                 // until MARV has reversed for 6cm, keep reversing....
 
                 //println!("{}", working_data.distance);
-                if working_data.distance < 60 {
+                if working_data.distance < 30 {
                     return;
                 }
 

@@ -115,6 +115,11 @@ impl MazeLineMap {
         // |                             085 pixels
         // |      : vertical line (|)     ↓
 
+        // if we are outside the maze then just return white
+        if col_index >= self.columns.len() || row_index >= self.rows.len() {
+            return Some(Colour::White);
+        }
+
         // get coords within block
         let x_in_block = x - (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) * col_index as f32;
         let y_in_block = y - (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) * row_index as f32;

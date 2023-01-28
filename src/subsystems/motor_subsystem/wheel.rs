@@ -70,24 +70,34 @@ impl Wheels {
 
     pub fn update_distance(&mut self) {
         if self.left_speed == 0 && self.right_speed == 0 {
-            self.left_distance = 0.0;
-            self.rotation = 0.0;
-            self.right_distance = 0.0;
-            self.total_distance = 0.0;
+            self.reset_fields();
         } else {
-            let time = self.time.elapsed().unwrap();
+            // get the elapsed time and reset it
+            let time = self.time.elapsed().unwrap().as_secs_f32();
             self.time = SystemTime::now();
 
-            self.left_distance += time.as_secs_f32() * (self.left_speed as f32);
-            self.right_distance += time.as_secs_f32() * (self.right_speed as f32);
+            // store speeds as f32 so that the conversion from i16 only has to be done once
+            let left_speed = self.left_speed as f32;
+            let right_speed = self.right_speed as f32;
 
-            let linear_speed = (self.left_speed + self.right_speed) as f32 / 2.0;
-            let angular_velocity =
-                (self.right_speed - self.left_speed) as f32 / (constants::AXLE_DIST as f32);
+            // calculate the linear and angular velocity of the robot
+            let linear_speed = (left_speed + right_speed) / 2.0;
+            let angular_velocity = (right_speed - left_speed) / (constants::AXLE_DIST as f32);
 
-            self.total_distance += time.as_secs_f32() * linear_speed;
+            // update the distances that each wheel has travelled respectively (first order numerical integration / rectangle rule)
+            self.left_distance += time * left_speed;
+            self.right_distance += time * right_speed;
 
-            self.rotation += time.as_secs_f32() * angular_velocity;
+            // update the total linear distance travelled by the robot and its angle/rotation (first order numerical integration / rectangle rule)
+            self.total_distance += time * linear_speed;
+            self.rotation += time * angular_velocity;
         }
+    }
+
+    fn reset_fields(&mut self) {
+        self.left_distance = 0.0;
+        self.rotation = 0.0;
+        self.right_distance = 0.0;
+        self.total_distance = 0.0;
     }
 }

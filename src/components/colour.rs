@@ -56,16 +56,15 @@ pub struct Colours {
 
 impl From<u16> for Colours {
     fn from(colour_word: u16) -> Self {
-        Colours {
-            colours: [
-                Colour::from(((colour_word & 0b0111000000000000) >> 12) as u8),
-                Colour::from(((colour_word & 0b0000111000000000) >> 9) as u8),
-                Colour::from(((colour_word & 0b0000000111000000) >> 6) as u8),
-                Colour::from(((colour_word & 0b0000000000111000) >> 3) as u8),
-                Colour::from((colour_word & 0b0000000000000111) as u8),
-            ],
-            index: 0,
+        let mut mask = 0b0111000000000000;
+        let mut colours = [Colour::White; 5];
+
+        for i in 0..5 {
+            colours[i] = Colour::from(((colour_word & mask) >> (12 - (3 * i))) as u8);
+            mask >>= 3;
         }
+
+        Colours { colours, index: 0 }
     }
 }
 

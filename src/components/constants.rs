@@ -1,7 +1,5 @@
 use std::f32::consts::PI;
 
-pub struct Constants {}
-
 // =================================================================================
 // Maze painting constants
 
@@ -47,6 +45,7 @@ pub const MAZE_BUTTON_TOUCHED: Bytes = [146, 1, 0, 0];
 pub const MAZE_BUTTON_NOT_TOUCHED: Bytes = [146, 0, 0, 0];
 pub const MAZE_NAVCON_FORWARD: Bytes = [147, 50, 50, 0];
 pub const MAZE_NAVCON_REVERSE: Bytes = [147, 50, 50, 1];
+pub const MAZE_NAVCON_STOP: Bytes = [147, 0, 0, 0];
 pub const MAZE_BATTERY_LEVEL: Bytes = [161, 0, 0, 0];
 pub const MAZE_END_OF_MAZE: Bytes = [179, 0, 0, 0];
 
@@ -74,9 +73,3 @@ pub const LARGE_PADDING: f32 = 8.0;
 pub const HUGE_PADDING: f32 = 12.0;
 
 // =================================================================================
-
-impl Constants {
-    pub fn inter_sensor_distance() -> u16 {
-        B_ISD
-    }
-}

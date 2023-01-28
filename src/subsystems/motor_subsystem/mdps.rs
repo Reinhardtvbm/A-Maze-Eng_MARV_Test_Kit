@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crossbeam::channel::Sender;
 
 use crate::{
@@ -134,10 +136,17 @@ impl Mdps {
                                 while self.wheels.get_rotation() < target_rotation {
                                     self.wheels.update_distance();
 
-                                    wheel_speeds
-                                        .send((self.wheels.get_left(), self.wheels.get_right())).expect("FATAL: mdps run thread could not send data to sensor positions calculator thread");
-
-                                    //println!("MDPS thread sending wheels");
+                                    match wheel_speeds
+                                        .try_send((self.wheels.get_left(), self.wheels.get_right()))
+                                    {
+                                        Ok(_) => println!(
+                                            "successfully sent wheel speeds to calculator thread"
+                                        ),
+                                        Err(e) => {
+                                            println!("INFO: mdps run thread could not send data to sensor positions calculator thread, {}", e);
+                                            std::thread::sleep(Duration::from_millis(10));
+                                        }
+                                    }
                                 }
                             }
 
@@ -153,8 +162,8 @@ impl Mdps {
 
                             self.write([
                                 162,
-                                rotation_bytes.get_lsb(),
-                                rotation_bytes.get_msb(),
+                                rotation_bytes.lsb(),
+                                rotation_bytes.msb(),
                                 match self.wheels.left_rotation() {
                                     true => 2,
                                     false => 3,
@@ -177,12 +186,7 @@ impl Mdps {
 
                             let distance_bytes = AdjacentBytes::from(distance);
 
-                            self.write([
-                                164,
-                                distance_bytes.get_msb(),
-                                distance_bytes.get_lsb(),
-                                0,
-                            ]);
+                            self.write([164, distance_bytes.msb(), distance_bytes.lsb(), 0]);
                         }
                         ControlByte::MazeEndOfMaze => end_of_maze = true,
                         _ => (),

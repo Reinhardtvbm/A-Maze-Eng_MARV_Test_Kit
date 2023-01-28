@@ -54,7 +54,7 @@ pub fn run_system(
     let (snc_tx2, mdps_rx2) = channel::bounded(10);
 
     // let (sensor_positions_tx, sensor_positions_rx) = channel::bounded(1);
-    let (wheel_tx, wheel_rx) = channel::bounded(100);
+    let (wheel_tx, wheel_rx) = channel::bounded(1);
 
     let sensor_position_computer = SensorPosComputer::new(start_pos.0, start_pos.1);
 

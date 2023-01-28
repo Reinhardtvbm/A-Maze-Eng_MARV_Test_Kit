@@ -49,7 +49,7 @@ impl Buffer {
     }
 
     pub fn empty(&self) -> bool {
-        self.0.len() == 0
+        self.0.is_empty()
     }
 }
 

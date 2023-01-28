@@ -70,9 +70,9 @@ impl Ss {
                     /* MAZE */
 
                     let mut colours = Vec::new();
-                    let latest_positions = self.positions_receiver.recv().unwrap();
 
-                    //println!("{:?}", latest_positions);
+                    // NOTE: recv() blocks this thread until new data is received
+                    let latest_positions = self.positions_receiver.recv().unwrap();
 
                     // get the colours under each sensor
                     latest_positions.iter().for_each(|sensor_pos| {
@@ -81,9 +81,6 @@ impl Ss {
                                 .expect("FATAL: colour in maze not found"),
                         )
                     });
-
-                    println!("positions: {:?}", latest_positions);
-                    println!("colours: {:?}", colours);
 
                     if colours.iter().all(|colour| *colour == Colour::Red) {
                         end_of_maze = true;
@@ -112,7 +109,7 @@ impl Ss {
 
                         let bytes: AdjacentBytes = word.into();
 
-                        self.write([177, bytes.get_msb(), bytes.get_lsb(), 0]);
+                        self.write([177, bytes.msb(), bytes.lsb(), 0]);
                         self.write([178, 0, 0, 0]);
                     }
                 }
@@ -131,10 +128,9 @@ impl BufferUser for Ss {
         self.comms.send(data.into());
     }
 
-    /// reads from the input buffer
+    /// reads from the input buffer (blocking call)
     fn read(&mut self) -> Packet {
         let p = self.comms.receive();
-        //println!("SS got {:?}", p);
         p
     }
 

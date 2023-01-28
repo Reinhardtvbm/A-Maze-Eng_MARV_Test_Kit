@@ -3,6 +3,8 @@
 //! The state and navigation control (SNC) subsystem is responsible for controlling
 //! the state of the system and navigating it through a maze.
 
+use crate::components::adjacent_bytes::AdjacentBytes;
+use crate::components::constants::{MAZE_NAVCON_FORWARD, MAZE_NAVCON_REVERSE, MAZE_NAVCON_STOP};
 use crate::components::{
     buffer::BufferUser, comm_port::ControlByte, packet::Packet, state::SystemState,
 };
@@ -72,20 +74,18 @@ impl Snc {
 
                     // write navigation control data (Control byte = 147) based on navcon.compute_output()
                     match self.navcon.get_state() {
-                        NavConState::Forward => self.write([147, 50, 50, 0]),
-                        NavConState::Reverse => self.write([147, 50, 50, 1]),
-                        NavConState::Stop => self.write([147, 0, 0, 0]),
+                        NavConState::Forward => self.write(MAZE_NAVCON_FORWARD),
+                        NavConState::Reverse => self.write(MAZE_NAVCON_REVERSE),
+                        NavConState::Stop => self.write(MAZE_NAVCON_STOP),
                         NavConState::RotateLeft => {
-                            let dat1 = ((self.navcon.output_rotation & 0xFF00) >> 8) as u8;
-                            let dat0 = (self.navcon.output_rotation & 0x00FF) as u8;
-
-                            self.write([147, dat1, dat0, 2]);
+                            let rotation = AdjacentBytes::from(self.navcon.output_rotation);
+                            self.write([147, rotation.msb(), rotation.lsb(), 2]);
+                            // panic!("{}", self.navcon.output_rotation);
                         }
                         NavConState::RotateRight => {
-                            let dat1 = ((self.navcon.output_rotation & 0xFF00) >> 8) as u8;
-                            let dat0 = (self.navcon.output_rotation & 0x00FF) as u8;
-
-                            self.write([147, dat1, dat0, 3]);
+                            let rotation = AdjacentBytes::from(self.navcon.output_rotation);
+                            self.write([147, rotation.msb(), rotation.lsb(), 3]);
+                            //panic!("{}", self.navcon.output_rotation);
                         }
                     }
                     // get MDPS packets:

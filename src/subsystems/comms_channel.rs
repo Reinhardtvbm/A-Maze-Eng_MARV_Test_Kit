@@ -46,8 +46,6 @@ impl CommsChannel {
             }
         }
         let p = self.in_buffer.read().unwrap();
-
-        println!("got {:?}", p);
         p
     }
 

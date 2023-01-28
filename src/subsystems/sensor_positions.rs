@@ -49,12 +49,6 @@ impl SensorPosComputer {
         positions_gui: Sender<[(f32, f32); 5]>,
     ) {
         for (left_speed, right_speed) in wheel_info {
-            println!("got wheels");
-
-            // if left_speed == -right_speed {
-            //     println!("rotating");
-            // }
-
             let elapsed_time = self.time.elapsed().unwrap().as_millis() as f32 / 1_000.0; // s
 
             self.time = SystemTime::now();
@@ -89,17 +83,19 @@ impl SensorPosComputer {
             let sensor_final_positions: Result<[(f32, f32); 5], Vec<(f32, f32)>> =
                 sens_positions.try_into();
 
+            // println!("trying to send sensor positions");
+
             if let Ok(sens_positions) = sensor_final_positions {
-                if positions_ss.send(sens_positions).is_err() {
-                    panic!("FATAL: position could not be sent to SS!");
+                if positions_ss.try_send(sens_positions).is_err() {
+                    println!("FATAL: position could not be sent to SS!");
                 }
 
-                if positions_gui.send(sens_positions).is_err() {
-                    panic!("FATAL: position could not be sent to GUI!");
+                if positions_gui.try_send(sens_positions).is_err() {
+                    println!("FATAL: position could not be sent to GUI!");
                 }
             }
         }
 
-        println!("compute pos end");
+        // println!("compute pos end");
     }
 }

@@ -11,12 +11,12 @@ impl AdjacentBytes {
     }
 
     /// returns the most signigicant byte
-    pub fn get_msb(&self) -> u8 {
+    pub fn msb(&self) -> u8 {
         self.0
     }
 
     /// returns the least significant byte
-    pub fn get_lsb(&self) -> u8 {
+    pub fn lsb(&self) -> u8 {
         self.1
     }
 }
@@ -29,7 +29,8 @@ impl From<u16> for AdjacentBytes {
     /// since the trait `Into` is automatically implemented when `From` is
     /// implemented, but the second way requires explicit type annotation
     fn from(integer: u16) -> Self {
-        AdjacentBytes(((integer & 0xFF00) >> 8) as u8, (integer & 0x00FF) as u8)
+        let [msb, lsb] = integer.to_be_bytes();
+        AdjacentBytes(msb, lsb)
     }
 }
 
