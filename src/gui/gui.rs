@@ -1,17 +1,21 @@
 extern crate crossbeam;
 extern crate eframe;
 
-use std::{f32::consts::PI, time::Duration};
+use std::time::Duration;
 
 use crossbeam::channel::{self, Receiver};
 use eframe::egui::{self, Response, Ui};
 
-use crate::subsystems::system::{run_system, Mode};
-
-use super::{
-    test_windows::navcon::qtp1::paint_navcon_qtp_1,
-    window_stack::{Window, WindowHistory},
+use crate::{
+    components::constants::{
+        DEFUALT_COM_PORT, DEFUALT_STARTING_POSITION, HUGE_PADDING, LARGE_PADDING, MEDIUM_PADDING,
+        NINETY_DEGREES, SMALL_PADDING,
+    },
+    gui::test_windows::navcon::qtp1::generate_navcon_qtp_1_maze,
+    subsystems::system::{run_system, Mode},
 };
+
+use super::window_stack::{Window, WindowHistory};
 
 enum QTPState {
     Busy,
@@ -41,13 +45,13 @@ impl MARVApp {
 
     fn paint_main_window(&mut self, ui: &mut Ui) {
         ui.heading("Welcome to the EPR 320 developmental test kit!");
-        ui.add_space(8.0);
+        ui.add_space(LARGE_PADDING);
 
         // SNC tests
         ui.group(|ui| {
             ui.heading("SNC Tests");
 
-            ui.add_space(4.0);
+            ui.add_space(MEDIUM_PADDING);
 
             ui.label("SNC");
             ui.horizontal(|ui| {
@@ -56,7 +60,7 @@ impl MARVApp {
                 if ui.button("QTP3").clicked() {}
             });
 
-            ui.add_space(2.0);
+            ui.add_space(SMALL_PADDING);
 
             ui.label("NAVCON");
             ui.horizontal(|ui| {
@@ -70,13 +74,13 @@ impl MARVApp {
             });
         });
 
-        ui.add_space(12.0);
+        ui.add_space(HUGE_PADDING);
 
         // SS tests
         ui.group(|ui| {
             ui.heading("SS Tests");
 
-            ui.add_space(4.0);
+            ui.add_space(MEDIUM_PADDING);
 
             ui.horizontal(|ui| {
                 if ui.button("QTP1").clicked() {}
@@ -87,13 +91,13 @@ impl MARVApp {
             });
         });
 
-        ui.add_space(12.0);
+        ui.add_space(HUGE_PADDING);
 
         // MDPS tests
         ui.group(|ui| {
             ui.heading("MDPS Tests");
 
-            ui.add_space(4.0);
+            ui.add_space(MEDIUM_PADDING);
 
             ui.horizontal(|ui| {
                 if ui.button("QTP1").clicked() {}
@@ -104,13 +108,13 @@ impl MARVApp {
             });
         });
 
-        ui.add_space(12.0);
+        ui.add_space(HUGE_PADDING);
 
         // Integration tests
         ui.group(|ui| {
             ui.heading("Integration Tests");
 
-            ui.add_space(4.0);
+            ui.add_space(MEDIUM_PADDING);
 
             // placeholders
             ui.horizontal(|ui| {
@@ -128,7 +132,7 @@ impl MARVApp {
             self.state.pop();
         }
 
-        ui.add_space(8.0);
+        ui.add_space(LARGE_PADDING);
 
         ui.heading("    NAVCON QTP 1");
 
@@ -136,7 +140,7 @@ impl MARVApp {
             QTPState::Busy => {
                 for positions in &self.sensor_positions_receiver {
                     println!("painting with: {:?}", positions);
-                    paint_navcon_qtp_1(ui, positions);
+                    generate_navcon_qtp_1_maze(ui, positions);
                     ctx.request_repaint();
 
                     if positions[0].1 > 1000.0 {
@@ -145,7 +149,7 @@ impl MARVApp {
                 }
             }
             QTPState::Idle => {
-                let maze_map = paint_navcon_qtp_1(ui, [(0.1, 0.05); 5]);
+                let maze = generate_navcon_qtp_1_maze(ui, [(0.1, 0.05); 5]);
 
                 let (sens_tx, sens_rx) = channel::bounded(10);
                 self.sensor_positions_receiver = sens_rx;
@@ -160,12 +164,12 @@ impl MARVApp {
                             Mode::Emulate,
                             Mode::Emulate,
                             Mode::Emulate,
-                            String::from('0'),
-                            String::from('0'),
-                            String::from('0'),
-                            maze_map,
-                            (0.1, 0.05), // in meters
-                            PI / 2.0,
+                            DEFUALT_COM_PORT,
+                            DEFUALT_COM_PORT,
+                            DEFUALT_COM_PORT,
+                            maze,
+                            DEFUALT_STARTING_POSITION, // in meters
+                            NINETY_DEGREES,
                             sens_tx,
                         );
                     });

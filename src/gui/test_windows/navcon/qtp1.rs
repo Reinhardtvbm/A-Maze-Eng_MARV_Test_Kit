@@ -20,7 +20,7 @@ use crate::{
     gui::maze::MazeLineMap,
 };
 
-pub fn paint_navcon_qtp_1(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
+pub fn generate_navcon_qtp_1_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
     // INITIALISE THE MAZE
     let mut maze_map = MazeLineMap::new(4, 1);
 
