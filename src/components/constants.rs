@@ -29,7 +29,7 @@ type Bytes = [u8; 4];
 pub const HUB_START: Bytes = [0, 0, 0, 0];
 pub const HUB_END_OF_MAZE: Bytes = [1, 0, 0, 0];
 
-pub const IDLE_BUTTON_TOUCHED: Bytes = [16, 1, 0, 0];
+pub const IDLE_BUTTON_TOUCHED: Bytes = [16, 1, 30, 0];
 pub const IDLE_BUTTON_NOT_TOUCHED: Bytes = [16, 0, 0, 0];
 
 pub const CAL_CALIBRATED: Bytes = [112, 0, 0, 0];
@@ -43,8 +43,8 @@ pub const MAZE_CLAPSNAP: Bytes = [145, 1, 0, 0];
 pub const MAZE_CLAPSNAP_NONE: Bytes = [145, 0, 0, 0];
 pub const MAZE_BUTTON_TOUCHED: Bytes = [146, 1, 0, 0];
 pub const MAZE_BUTTON_NOT_TOUCHED: Bytes = [146, 0, 0, 0];
-pub const MAZE_NAVCON_FORWARD: Bytes = [147, 50, 50, 0];
-pub const MAZE_NAVCON_REVERSE: Bytes = [147, 50, 50, 1];
+pub const MAZE_NAVCON_FORWARD: Bytes = [147, 30, 30, 0];
+pub const MAZE_NAVCON_REVERSE: Bytes = [147, 30, 30, 1];
 pub const MAZE_NAVCON_STOP: Bytes = [147, 0, 0, 0];
 pub const MAZE_BATTERY_LEVEL: Bytes = [161, 0, 0, 0];
 pub const MAZE_END_OF_MAZE: Bytes = [179, 0, 0, 0];

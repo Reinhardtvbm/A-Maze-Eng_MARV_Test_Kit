@@ -64,7 +64,7 @@ impl<T: Copy + fmt::Debug> Channel<T> {
                 return self.origin.lock().unwrap().read().unwrap();
             }
 
-            std::thread::sleep(Duration::from_micros(1));
+            std::thread::sleep(Duration::from_nanos(100));
         }
     }
 }

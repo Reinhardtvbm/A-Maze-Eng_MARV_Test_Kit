@@ -8,7 +8,10 @@ use crate::{
         adjacent_bytes::AdjacentBytes,
         buffer::BufferUser,
         comm_port::ControlByte,
-        constants::{MAZE_NAVCON_FORWARD, MAZE_NAVCON_REVERSE, MAZE_NAVCON_STOP},
+        constants::{
+            CAL_BUTTON_TOUCHED, IDLE_BUTTON_TOUCHED, MAZE_BUTTON_NOT_TOUCHED, MAZE_CLAPSNAP_NONE,
+            MAZE_NAVCON_FORWARD, MAZE_NAVCON_REVERSE, MAZE_NAVCON_STOP,
+        },
         packet::Packet,
         state::SystemState,
     },
@@ -59,21 +62,21 @@ impl Snc {
             match self.state {
                 SystemState::Idle => {
                     /* IDLE */
-                    self.write([16, 1, 100, 0]); // write touch detected to port
+                    self.write(IDLE_BUTTON_TOUCHED); // write touch detected to port
                     self.state = SystemState::Calibrate; // go to calibrate state
                 }
                 SystemState::Calibrate => {
                     /* CALIBRATE */
                     self.wait_for_packet(113.into());
 
-                    self.write([80, 1, 0, 0]);
+                    self.write(CAL_BUTTON_TOUCHED);
                     self.state = SystemState::Maze;
                 }
                 SystemState::Maze => {
                     /* MAZE */
 
-                    self.write([145, 0, 0, 0]); // write no clap/snap sensed
-                    self.write([146, 0, 0, 0]); // write no rouch
+                    self.write(MAZE_CLAPSNAP_NONE); // write no clap/snap sensed
+                    self.write(MAZE_BUTTON_NOT_TOUCHED); // write no rouch
 
                     // run NAVCON and write output:
                     self.navcon.compute_output(packets); // NAVCON
