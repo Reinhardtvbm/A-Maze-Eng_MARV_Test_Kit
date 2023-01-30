@@ -1,13 +1,6 @@
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-};
-
+use crate::components::comm_port::ControlByte;
 use crate::components::packet::Packet;
-
-use super::comm_port::ControlByte;
-
-pub type SharedBuffer = Arc<Mutex<Buffer>>;
+use std::collections::VecDeque;
 
 /// Get is a trait that was created to access the internal value of a SharedBuffer more easily,
 /// by simply calling `get()` as opposed to `as_ref().borrow()`
@@ -24,27 +17,27 @@ pub trait Get {
 /// a buffer. _Could become replaced by channels_ if
 /// multithreading is implemented
 #[derive(Debug, Clone)]
-pub struct Buffer(VecDeque<Packet>);
+pub struct Buffer<T>(VecDeque<T>);
 
-impl Buffer {
+impl<T> Buffer<T> {
     pub fn new() -> Self {
         Self(VecDeque::new())
     }
 
     /// write/push to front of the queue
-    pub fn write(&mut self, packet: Packet) {
-        self.0.push_front(packet);
+    pub fn write(&mut self, data: T) {
+        self.0.push_front(data);
     }
 
     /// read the value at the back of the queue and remove it
     /// from the Buffer
-    pub fn read(&mut self) -> Option<Packet> {
+    pub fn read(&mut self) -> Option<T> {
         self.0.pop_back()
     }
 
     /// read the value at the back of the queue without changing its
     /// contents
-    pub fn peek(&self) -> Option<&Packet> {
+    pub fn peek(&self) -> Option<&T> {
         self.0.back()
     }
 

@@ -11,19 +11,19 @@ use crate::{
         state::SystemState,
     },
     gui::maze::MazeLineMap,
-    subsystems::{comms_channel::CommsChannel, sensor_positions::SensorPosComputer},
+    subsystems::{channel::Channel, sensor_positions::SensorPosComputer},
 };
 
 #[derive(Debug)]
 pub struct Ss {
-    comms: CommsChannel,
+    comms: Channel<Packet>,
     state: SystemState,
     positions_receiver: Receiver<[(f32, f32); 5]>,
 }
 
 impl Ss {
     pub fn new(
-        comms: CommsChannel,
+        comms: Channel<Packet>,
         mut position_calculator: SensorPosComputer,
         wheel_receiver: Receiver<(i16, i16)>,
         gui_tx: Sender<[(f32, f32); 5]>,
@@ -124,24 +124,21 @@ impl Ss {
 impl BufferUser for Ss {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        //println!("SS sending...");
         self.comms.send(data.into());
     }
 
-    /// reads from the input buffer (blocking call)
+    /// reads from the input buffer
     fn read(&mut self) -> Packet {
-        let p = self.comms.receive();
-        p
+        self.comms.receive()
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        //println!("SS waiting for packet ({:?})", control_byte);
-        let mut p: Packet = [0, 0, 0, 0].into();
+        loop {
+            let packet = self.read();
 
-        while p.control_byte() != control_byte {
-            p = self.read();
+            if packet.control_byte() == control_byte {
+                return packet;
+            }
         }
-
-        p
     }
 }

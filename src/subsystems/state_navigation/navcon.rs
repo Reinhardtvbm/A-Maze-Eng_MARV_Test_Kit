@@ -99,8 +99,6 @@ impl NavCon {
     }
 
     fn blue_encounter(&mut self, incidence: u8, side: Side) {
-        // println!("blue");
-
         self.previous_state = NavConState::Forward;
         self.current_state = NavConState::Stop;
         self.next_state = NavConState::RotateRight;
@@ -110,9 +108,9 @@ impl NavCon {
             Side::Right => 90 + incidence as u16,
         };
 
-        // if self.previously_encountered_colour == Colour::Blue {
-        //     self.output_rotation += 90;
-        // }
+        if self.previously_encountered_colour == Colour::Blue {
+            self.output_rotation += 90;
+        }
 
         self.previously_encountered_colour = Colour::Blue;
     }

@@ -3,19 +3,25 @@
 //! The state and navigation control (SNC) subsystem is responsible for controlling
 //! the state of the system and navigating it through a maze.
 
-use crate::components::adjacent_bytes::AdjacentBytes;
-use crate::components::constants::{MAZE_NAVCON_FORWARD, MAZE_NAVCON_REVERSE, MAZE_NAVCON_STOP};
-use crate::components::{
-    buffer::BufferUser, comm_port::ControlByte, packet::Packet, state::SystemState,
+use crate::{
+    components::{
+        adjacent_bytes::AdjacentBytes,
+        buffer::BufferUser,
+        comm_port::ControlByte,
+        constants::{MAZE_NAVCON_FORWARD, MAZE_NAVCON_REVERSE, MAZE_NAVCON_STOP},
+        packet::Packet,
+        state::SystemState,
+    },
+    subsystems::{
+        channel::Channel,
+        state_navigation::navcon::{NavCon, NavConState},
+    },
 };
-
-use crate::subsystems::comms_channel::CommsChannel;
-use crate::subsystems::state_navigation::navcon::{NavCon, NavConState};
 
 /// The struct that allows the system to emulate the SNC
 #[derive(Debug)]
 pub struct Snc {
-    comms: CommsChannel,
+    comms: Channel<Packet>,
     state: SystemState,
     navcon: NavCon,
 }
@@ -27,7 +33,7 @@ impl Snc {
     /// `activate_port` will enable the COM Port (`ComPort`) if `true`
     ///
     /// need to add a way to set the COM port number and baud rate
-    pub fn new(comms: CommsChannel) -> Self {
+    pub fn new(comms: Channel<Packet>) -> Self {
         Self {
             state: SystemState::Idle,
             navcon: NavCon::new(),
@@ -121,25 +127,21 @@ impl Snc {
 impl BufferUser for Snc {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        //println!("SNC sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
-        let p = self.comms.receive();
-        //println!("SNC got {:?}", p);
-        p
+        self.comms.receive()
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        //println!("SNC waiting for packet ({:?})", control_byte);
-        let mut p: Packet = [0, 0, 0, 0].into();
+        loop {
+            let packet = self.read();
 
-        while p.control_byte() != control_byte {
-            p = self.read();
+            if packet.control_byte() == control_byte {
+                return packet;
+            }
         }
-
-        p
     }
 }

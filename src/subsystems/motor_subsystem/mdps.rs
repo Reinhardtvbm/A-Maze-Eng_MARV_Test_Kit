@@ -11,7 +11,7 @@ use crate::{
         packet::Packet,
         state::SystemState,
     },
-    subsystems::{comms_channel::CommsChannel, motor_subsystem::wheel::Wheels},
+    subsystems::{channel::Channel, motor_subsystem::wheel::Wheels},
 };
 
 /**
@@ -20,8 +20,7 @@ use crate::{
 **/
 #[derive(Debug)]
 pub struct Mdps {
-    comms: CommsChannel,
-
+    comms: Channel<Packet>,
     /// Wheels is a struct that contains data for speed, distance,
     /// and rotation. It facilitates some of the calculations
     /// required to keep track of this data in autonomous mode
@@ -37,7 +36,7 @@ impl Mdps {
     ///
     /// If the test kit is running with one or more real subsystems, commport will be Some(..), otherwise it
     /// must be None
-    pub fn new(comms: CommsChannel, wheels: Wheels) -> Self {
+    pub fn new(comms: Channel<Packet>, wheels: Wheels) -> Self {
         Self {
             wheels,
             state: SystemState::Idle,
@@ -219,25 +218,21 @@ impl Mdps {
 impl BufferUser for Mdps {
     /// writes to the output buffer
     fn write(&mut self, data: [u8; 4]) {
-        //println!("MDPS sending...");
         self.comms.send(data.into());
     }
 
     /// reads from the input buffer
     fn read(&mut self) -> Packet {
-        let p = self.comms.receive();
-        //println!("MDPS got {:?}", p);
-        p
+        self.comms.receive()
     }
 
     fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        //println!("MDPS waiting for packet ({:?})", control_byte);
-        let mut p: Packet = [0, 0, 0, 0].into();
+        loop {
+            let packet = self.read();
 
-        while p.control_byte() != control_byte {
-            p = self.read();
+            if packet.control_byte() == control_byte {
+                return packet;
+            }
         }
-
-        p
     }
 }
