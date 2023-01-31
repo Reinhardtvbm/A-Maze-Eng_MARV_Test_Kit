@@ -1,14 +1,11 @@
 use std::{
     fmt,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 
 use crate::components::buffer::Buffer;
 
-pub enum ChannelRecErr {
-    NoData,
-}
+use super::channel_err::ChannelRecErr;
 
 pub struct OTMChannel<T>
 where
@@ -71,14 +68,13 @@ impl<T: Copy + fmt::Debug> OTMChannel<T> {
     }
 
     /// checks if there is data in the origin buffer, and returns it if
-    /// there is, else wait 100ns
+    /// there is
     pub fn try_receive(&mut self) -> Result<T, ChannelRecErr> {
         if self.origin.lock().unwrap().empty() {
-            std::thread::sleep(Duration::from_nanos(100));
-            return Err(ChannelRecErr::NoData);
+            Err(ChannelRecErr::NoData)
+        } else {
+            Ok(self.origin.lock().unwrap().read().unwrap())
         }
-
-        Ok(self.origin.lock().unwrap().read().unwrap())
     }
 
     pub fn name(&self) -> &str {
