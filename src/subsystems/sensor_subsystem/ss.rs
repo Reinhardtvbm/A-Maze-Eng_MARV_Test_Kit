@@ -1,6 +1,7 @@
 use crossbeam::channel::{self, Receiver, Sender};
 
 use crate::{
+    asynchronous::one_to_many_channel::OTMChannel,
     components::{
         adjacent_bytes::AdjacentBytes,
         buffer::BufferUser,
@@ -11,19 +12,19 @@ use crate::{
         state::SystemState,
     },
     gui::maze::MazeLineMap,
-    subsystems::{channel::Channel, sensor_positions::SensorPosComputer},
+    subsystems::sensor_positions::SensorPosComputer,
 };
 
 #[derive(Debug)]
 pub struct Ss {
-    comms: Channel<Packet>,
+    comms: OTMChannel<Packet>,
     state: SystemState,
     positions_receiver: Receiver<[(f32, f32); 5]>,
 }
 
 impl Ss {
     pub fn new(
-        comms: Channel<Packet>,
+        comms: OTMChannel<Packet>,
         mut position_calculator: SensorPosComputer,
         wheel_receiver: Receiver<(i16, i16)>,
         gui_tx: Sender<[(f32, f32); 5]>,

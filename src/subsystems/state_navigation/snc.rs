@@ -4,6 +4,7 @@
 //! the state of the system and navigating it through a maze.
 
 use crate::{
+    asynchronous::one_to_many_channel::OTMChannel,
     components::{
         adjacent_bytes::AdjacentBytes,
         buffer::BufferUser,
@@ -15,16 +16,13 @@ use crate::{
         packet::Packet,
         state::SystemState,
     },
-    subsystems::{
-        channel::Channel,
-        state_navigation::navcon::{NavCon, NavConState},
-    },
+    subsystems::state_navigation::navcon::{NavCon, NavConState},
 };
 
 /// The struct that allows the system to emulate the SNC
 #[derive(Debug)]
 pub struct Snc {
-    comms: Channel<Packet>,
+    comms: OTMChannel<Packet>,
     state: SystemState,
     navcon: NavCon,
 }
@@ -36,7 +34,7 @@ impl Snc {
     /// `activate_port` will enable the COM Port (`ComPort`) if `true`
     ///
     /// need to add a way to set the COM port number and baud rate
-    pub fn new(comms: Channel<Packet>) -> Self {
+    pub fn new(comms: OTMChannel<Packet>) -> Self {
         Self {
             state: SystemState::Idle,
             navcon: NavCon::new(),

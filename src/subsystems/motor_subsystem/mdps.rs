@@ -3,6 +3,7 @@ use std::time::Duration;
 use crossbeam::channel::Sender;
 
 use crate::{
+    asynchronous::one_to_many_channel::OTMChannel,
     components::{
         adjacent_bytes::AdjacentBytes,
         buffer::BufferUser,
@@ -11,7 +12,7 @@ use crate::{
         packet::Packet,
         state::SystemState,
     },
-    subsystems::{channel::Channel, motor_subsystem::wheel::Wheels},
+    subsystems::motor_subsystem::wheel::Wheels,
 };
 
 /**
@@ -20,7 +21,7 @@ use crate::{
 **/
 #[derive(Debug)]
 pub struct Mdps {
-    comms: Channel<Packet>,
+    comms: OTMChannel<Packet>,
     /// Wheels is a struct that contains data for speed, distance,
     /// and rotation. It facilitates some of the calculations
     /// required to keep track of this data in autonomous mode
@@ -36,7 +37,7 @@ impl Mdps {
     ///
     /// If the test kit is running with one or more real subsystems, commport will be Some(..), otherwise it
     /// must be None
-    pub fn new(comms: Channel<Packet>, wheels: Wheels) -> Self {
+    pub fn new(comms: OTMChannel<Packet>, wheels: Wheels) -> Self {
         Self {
             wheels,
             state: SystemState::Idle,

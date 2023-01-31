@@ -1,62 +1,40 @@
-use crate::components::{
-    buffer::BufferUser,
-    comm_port::{ComPort, ControlByte},
-    packet::Packet,
+use crate::{
+    asynchronous::one_to_many_channel::OTMChannel,
+    components::{comm_port::ComPort, packet::Packet},
 };
 
-use super::comms_channel::CommsChannel;
-
 pub struct SerialRelay {
+    port_number: String,
     port: ComPort,
-    comms: CommsChannel,
+    channel: OTMChannel<Packet>,
 }
 
 impl SerialRelay {
-    pub fn new(comms: CommsChannel, com_no: String) -> Self {
+    pub fn new(channel: OTMChannel<Packet>, com_no: &str) -> Self {
         Self {
-            port: ComPort::new(com_no, 19200),
-            comms,
+            port_number: String::from(com_no),
+            port: ComPort::new(String::from(com_no), 19200),
+            channel,
         }
     }
 
     pub fn run(&mut self) {
         loop {
-            if let Ok(packet) = self.port.read() {
-                self.write(packet.into());
+            if let Ok(com_port_data) = self.port.try_read() {
+                self.channel.send(com_port_data);
             }
 
-            let write_to_port = match self.comms.is_empty() {
-                true => None,
-                false => Some(self.read()),
-            };
-
-            if let Some(packet) = write_to_port {
+            if let Ok(channel_data) = self.channel.try_receive() {
                 self.port
-                    .write(&packet.into())
-                    .expect("FATAL: Serial relay could not write to serial port");
+                    .write(&mut channel_data.into())
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "FATAL: could not write to {} port (COM{})",
+                            self.channel.name(),
+                            self.port_number
+                        )
+                    });
             }
         }
-    }
-}
-
-impl BufferUser for SerialRelay {
-    /// writes to the output buffer
-    fn write(&mut self, data: [u8; 4]) {
-        self.comms.send(data.into());
-    }
-
-    /// reads from the input buffer
-    fn read(&mut self) -> Packet {
-        self.comms.receive()
-    }
-
-    fn wait_for_packet(&mut self, control_byte: ControlByte) -> Packet {
-        let mut p: Packet = [0, 0, 0, 0].into();
-
-        while p.control_byte() != control_byte {
-            p = self.read();
-        }
-
-        p
     }
 }

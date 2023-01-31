@@ -1,4 +1,7 @@
-use std::fmt::{self, Debug};
+use std::{
+    fmt::{self, Debug},
+    time::Duration,
+};
 
 extern crate serialport;
 
@@ -10,6 +13,10 @@ use super::packet::Packet;
 pub enum ComPortError {
     ReadFail,
     WriteFail,
+}
+
+pub enum ComPortReadErr {
+    NoData,
 }
 
 pub struct ComPort(Box<dyn SerialPort>);
@@ -46,6 +53,24 @@ impl ComPort {
         } else {
             Err(ComPortError::WriteFail)
         }
+    }
+
+    pub fn try_read(&mut self) -> Result<Packet, ComPortReadErr> {
+        // NOTE: the unwrap() here means that before data is read from the
+        // COM Port, we must know that there is a valid serial connection
+        if self.0.bytes_to_read().unwrap() < 4 {
+            // if there aren't enough bytes to read yet, then delay for 1us
+            std::thread::sleep(Duration::from_micros(1));
+            return Err(ComPortReadErr::NoData);
+        }
+
+        let mut bytes = [0u8; 4];
+
+        if let Err(e) = self.0.read(&mut bytes) {
+            panic!("FATAL: failed to read from serial port ({})", e);
+        }
+
+        Ok(bytes.into())
     }
 }
 

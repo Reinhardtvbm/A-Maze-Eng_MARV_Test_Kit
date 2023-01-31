@@ -6,7 +6,11 @@ use std::{
 
 use crate::components::buffer::Buffer;
 
-pub struct Channel<T>
+pub enum ChannelRecErr {
+    NoData,
+}
+
+pub struct OTMChannel<T>
 where
     T: Copy + fmt::Debug,
 {
@@ -15,7 +19,7 @@ where
     origin: Arc<Mutex<Buffer<T>>>,
 }
 
-impl<T: Copy + fmt::Debug> Channel<T> {
+impl<T: Copy + fmt::Debug> OTMChannel<T> {
     /// creates a `Channel<T>` without any endpoints
     pub fn new(name: &str, origin: &Arc<Mutex<Buffer<T>>>) -> Self {
         Self {
@@ -60,16 +64,29 @@ impl<T: Copy + fmt::Debug> Channel<T> {
     /// the data first in the `Buffer`'s queue
     pub fn receive(&mut self) -> T {
         loop {
-            if !self.origin.lock().unwrap().empty() {
-                return self.origin.lock().unwrap().read().unwrap();
+            if let Ok(data) = self.try_receive() {
+                return data;
             }
-
-            std::thread::sleep(Duration::from_nanos(100));
         }
+    }
+
+    /// checks if there is data in the origin buffer, and returns it if
+    /// there is, else wait 100ns
+    pub fn try_receive(&mut self) -> Result<T, ChannelRecErr> {
+        if self.origin.lock().unwrap().empty() {
+            std::thread::sleep(Duration::from_nanos(100));
+            return Err(ChannelRecErr::NoData);
+        }
+
+        Ok(self.origin.lock().unwrap().read().unwrap())
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
 }
 
-impl<T: Copy + fmt::Debug> std::fmt::Debug for Channel<T> {
+impl<T: Copy + fmt::Debug> std::fmt::Debug for OTMChannel<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Channel")
             .field("origin", &self.name)

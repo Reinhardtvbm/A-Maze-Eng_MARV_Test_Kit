@@ -23,14 +23,15 @@ pub mod subsystems {
         pub mod ss;
     }
 
-    pub mod channel;
-    pub mod comms_channel;
-    pub mod one_to_one_channel;
     pub mod sensor_positions;
     pub mod serial_relay;
     pub mod system;
 }
 
+pub mod asynchronous {
+    pub mod one_to_many_channel;
+    pub mod one_to_one_channel;
+}
 pub mod gui {
     pub mod entry_window;
     pub mod gui;
