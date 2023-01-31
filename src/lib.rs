@@ -25,6 +25,7 @@ pub mod subsystems {
 
     pub mod channel;
     pub mod comms_channel;
+    pub mod one_to_one_channel;
     pub mod sensor_positions;
     pub mod serial_relay;
     pub mod system;
