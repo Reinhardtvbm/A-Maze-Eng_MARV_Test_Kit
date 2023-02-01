@@ -36,7 +36,7 @@ impl<T: Copy + fmt::Debug> OTOChannel<T> {
         if self.endpoint.lock().unwrap().empty() {
             self.endpoint.lock().unwrap().write(data);
         } else {
-            std::thread::sleep(Duration::from_micros(1));
+            std::thread::sleep(Duration::from_nanos(100));
         }
     }
 

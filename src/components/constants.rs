@@ -17,7 +17,7 @@ pub const MAZE_TOP_JUSTIFICATION: f32 = 80.0 + (MAZE_ROW_HEIGHT / 2.5);
 
 pub const B_ISD: u16 = 65; // big inter-sensor distance (in mm)
 pub const S_ISD: u16 = 15; // small inter-sensor distance (in mm)
-pub const AXLE_DIST: i16 = 100; // length of the axle (in mm)
+pub const AXLE_DIST: i16 = 75; // length of the axle (in mm)
 
 // =================================================================================
 

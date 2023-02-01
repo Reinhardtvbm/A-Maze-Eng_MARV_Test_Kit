@@ -3,7 +3,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use crate::asynchronous::one_to_many_channel::OTMChannel;
+use crate::asynchronous::one_to_many_channel::{Bound, OTMChannel};
 use crate::asynchronous::one_to_one_channel::OTOChannel;
 use crate::components::buffer::Buffer;
 use crate::components::packet::Packet;
@@ -68,11 +68,11 @@ pub fn run_system(
 
     // packet channels (comms between 3 threads):
     let snc_channel: OTMChannel<Packet> =
-        OTMChannel::with_endpoints("SNC", &to_snc, vec![&to_ss, &to_mdps]);
+        OTMChannel::with_endpoints("SNC", &to_snc, vec![&to_ss, &to_mdps], Bound::Inifinity);
     let ss_channel: OTMChannel<Packet> =
-        OTMChannel::with_endpoints("SS", &to_ss, vec![&to_snc, &to_mdps]);
+        OTMChannel::with_endpoints("SS", &to_ss, vec![&to_snc, &to_mdps], Bound::Inifinity);
     let mdps_channel: OTMChannel<Packet> =
-        OTMChannel::with_endpoints("MDPS", &to_mdps, vec![&to_snc, &to_ss]);
+        OTMChannel::with_endpoints("MDPS", &to_mdps, vec![&to_snc, &to_ss], Bound::Inifinity);
 
     // speeds channels (comms between 2 threads):
     let sensor_pos_comms_speeds = OTOChannel::new(
@@ -90,12 +90,14 @@ pub fn run_system(
         "Sensor Positions Channel (Positions)",
         &to_pos_computer_positions,
         vec![to_gui, &to_ss_positions],
+        Bound::Finite(1),
     );
 
     let ss_comms_positions = OTMChannel::with_endpoints(
         "SS (Positions)",
         &to_ss_positions,
         vec![to_gui, &to_pos_computer_positions],
+        Bound::Finite(1),
     );
 
     // ==================================================================================================================

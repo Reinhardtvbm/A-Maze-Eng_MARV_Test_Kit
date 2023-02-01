@@ -8,6 +8,11 @@ use crate::components::buffer::Buffer;
 
 use super::channel_err::ChannelRecErr;
 
+pub enum Bound {
+    Finite(usize),
+    Inifinity,
+}
+
 pub struct OTMChannel<T>
 where
     T: Copy + fmt::Debug,
@@ -15,15 +20,17 @@ where
     name: String,
     endpoints: Vec<Arc<Mutex<Buffer<T>>>>,
     origin: Arc<Mutex<Buffer<T>>>,
+    bound: Bound,
 }
 
 impl<T: Copy + fmt::Debug> OTMChannel<T> {
     /// creates a `Channel<T>` without any endpoints
-    pub fn new(name: &str, origin: &Arc<Mutex<Buffer<T>>>) -> Self {
+    pub fn new(name: &str, origin: &Arc<Mutex<Buffer<T>>>, bound: Bound) -> Self {
         Self {
             name: String::from(name),
             endpoints: Vec::new(),
             origin: Arc::clone(origin),
+            bound,
         }
     }
 
@@ -32,6 +39,7 @@ impl<T: Copy + fmt::Debug> OTMChannel<T> {
         name: &str,
         origin: &Arc<Mutex<Buffer<T>>>,
         endpoints: Vec<&Arc<Mutex<Buffer<T>>>>,
+        bound: Bound,
     ) -> Self {
         Self {
             name: String::from(name),
@@ -41,6 +49,7 @@ impl<T: Copy + fmt::Debug> OTMChannel<T> {
                 .map(|element| Arc::clone(element))
                 .collect(),
             origin: Arc::clone(origin),
+            bound,
         }
     }
 
@@ -53,13 +62,15 @@ impl<T: Copy + fmt::Debug> OTMChannel<T> {
     pub fn send(&self, data: T) {
         println!("{} sending {:?}", self.name, data);
 
-        self.endpoints.iter().for_each(|buffer| {
-            if buffer.lock().unwrap().len() <= 10 {
-                buffer.lock().unwrap().write(data);
-            } else {
-                std::thread::sleep(Duration::from_micros(1));
+        self.endpoints.iter().for_each(|buffer| match self.bound {
+            Bound::Finite(len) => {
+                if buffer.lock().unwrap().len() <= len {
+                    buffer.lock().unwrap().write(data);
+                } else {
+                    std::thread::sleep(Duration::from_nanos(100));
+                }
             }
-            //buffer.lock().unwrap().write(data);
+            Bound::Inifinity => buffer.lock().unwrap().write(data),
         });
     }
 
