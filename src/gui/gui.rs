@@ -19,10 +19,14 @@ use crate::{
         },
     },
     gui::test_windows::navcon::qtp1::generate_navcon_qtp_1_maze,
+    gui::test_windows::navcon::qtp2::generate_navcon_qtp_2_maze,
     subsystems::system::{run_system, Mode},
 };
 
-use super::window_stack::{Window, WindowHistory};
+use super::{
+    test_windows::navcon::qtp3::generate_navcon_qtp_3_maze,
+    window_stack::{Window, WindowHistory},
+};
 
 enum QTPState {
     Busy,
@@ -75,8 +79,12 @@ impl MARVApp {
                 if ui.button("QTP1").clicked() {
                     self.state.push(Window::NAVCONQtp1);
                 }
-                if ui.button("QTP2").clicked() {}
-                if ui.button("QTP3").clicked() {}
+                if ui.button("QTP2").clicked() {
+                    self.state.push(Window::NAVCONQtp2);
+                }
+                if ui.button("QTP3").clicked() {
+                    self.state.push(Window::NAVCONQtp3);
+                }
                 if ui.button("QTP4").clicked() {}
                 if ui.button("QTP5").clicked() {}
             });
@@ -197,6 +205,132 @@ impl MARVApp {
             }
         }
     }
+
+    fn paint_navcon_qtp_2_window(&mut self, ui: &mut Ui, ctx: &egui::Context) {
+        if ui.button("back").clicked() {
+            self.state.pop();
+        }
+
+        ui.add_space(LARGE_PADDING);
+
+        ui.heading("    NAVCON QTP 2");
+
+        match self.qtp_state {
+            QTPState::Busy => {
+                if let Some(positions) = self.sensor_positions.lock().unwrap().read() {
+                    println!("painting with: {:?}", positions);
+                    let maze = generate_navcon_qtp_2_maze(ui, positions);
+
+                    let mut colours = Vec::new();
+
+                    // get the colours under each sensor
+                    positions.iter().for_each(|sensor_pos| {
+                        colours.push(
+                            maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
+                                .expect("FATAL: colour in maze not found"),
+                        )
+                    });
+
+                    if positions[0].1 > 1000.0
+                        || colours.iter().all(|colour| *colour == Colour::Red)
+                    {
+                        self.qtp_state = QTPState::Idle;
+                    }
+
+                    ctx.request_repaint();
+                }
+            }
+            QTPState::Idle => {
+                let maze = generate_navcon_qtp_2_maze(ui, [(0.1, 0.05); 5]);
+
+                if ui.button("start").clicked() {
+                    self.qtp_state = QTPState::Busy;
+
+                    let gui_thread_origin = Arc::clone(&self.sensor_positions);
+
+                    self.test_thread = Some(std::thread::spawn(move || {
+                        std::thread::sleep(Duration::from_millis(5));
+
+                        run_system(
+                            Mode::Emulate,
+                            Mode::Emulate,
+                            Mode::Emulate,
+                            DEFUALT_COM_PORT,
+                            DEFUALT_COM_PORT,
+                            DEFUALT_COM_PORT,
+                            maze,
+                            DEFUALT_STARTING_POSITION, // in meters
+                            NINETY_DEGREES,
+                            &gui_thread_origin,
+                        );
+                    }));
+                }
+            }
+        }
+    }
+
+    fn paint_navcon_qtp_3_window(&mut self, ui: &mut Ui, ctx: &egui::Context) {
+        if ui.button("back").clicked() {
+            self.state.pop();
+        }
+
+        ui.add_space(LARGE_PADDING);
+
+        ui.heading("    NAVCON QTP 3");
+
+        match self.qtp_state {
+            QTPState::Busy => {
+                if let Some(positions) = self.sensor_positions.lock().unwrap().read() {
+                    println!("painting with: {:?}", positions);
+                    let maze = generate_navcon_qtp_3_maze(ui, positions);
+
+                    let mut colours = Vec::new();
+
+                    // get the colours under each sensor
+                    positions.iter().for_each(|sensor_pos| {
+                        colours.push(
+                            maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
+                                .expect("FATAL: colour in maze not found"),
+                        )
+                    });
+
+                    if positions[0].1 > 1000.0
+                        || colours.iter().all(|colour| *colour == Colour::Red)
+                    {
+                        self.qtp_state = QTPState::Idle;
+                    }
+
+                    ctx.request_repaint();
+                }
+            }
+            QTPState::Idle => {
+                let maze = generate_navcon_qtp_3_maze(ui, [(0.1, 0.05); 5]);
+
+                if ui.button("start").clicked() {
+                    self.qtp_state = QTPState::Busy;
+
+                    let gui_thread_origin = Arc::clone(&self.sensor_positions);
+
+                    self.test_thread = Some(std::thread::spawn(move || {
+                        std::thread::sleep(Duration::from_millis(5));
+
+                        run_system(
+                            Mode::Emulate,
+                            Mode::Emulate,
+                            Mode::Emulate,
+                            DEFUALT_COM_PORT,
+                            DEFUALT_COM_PORT,
+                            DEFUALT_COM_PORT,
+                            maze,
+                            DEFUALT_STARTING_POSITION, // in meters
+                            NINETY_DEGREES,
+                            &gui_thread_origin,
+                        );
+                    }));
+                }
+            }
+        }
+    }
 }
 
 impl eframe::App for MARVApp {
@@ -206,6 +340,10 @@ impl eframe::App for MARVApp {
                 match window {
                     Window::Main => self.paint_main_window(ui),
                     Window::NAVCONQtp1 => self.paint_navcon_qtp_1_window(ui, ctx),
+                    Window::NAVCONQtp2 => self.paint_navcon_qtp_2_window(ui, ctx),
+                    Window::NAVCONQtp3 => self.paint_navcon_qtp_3_window(ui, ctx),
+                    Window::NAVCONQtp4 => todo!(),
+                    Window::NAVCONQtp5 => todo!(),
                 }
             } else {
                 self.state.push(Window::Main);

@@ -42,6 +42,10 @@ pub mod gui {
     pub mod test_windows {
         pub mod navcon {
             pub mod qtp1;
+            pub mod qtp2;
+            pub mod qtp3;
+            pub mod qtp4;
+            pub mod qtp5;
         }
 
         pub mod snc {

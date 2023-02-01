@@ -1,4 +1,4 @@
-//! # NAVCON QTP 1
+//! # NAVCON QTP 5
 //!
 //! Tests whether the NAVCON responds correctly to
 //! a red OR green line, when they are encountered
@@ -20,7 +20,7 @@ use crate::{
     gui::maze::MazeLineMap,
 };
 
-pub fn generate_navcon_qtp_1_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
+pub fn generate_navcon_qtp_5_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
     // INITIALISE THE MAZE
     let mut maze_map = MazeLineMap::new(4, 1);
 
@@ -28,7 +28,7 @@ pub fn generate_navcon_qtp_1_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> M
         .add_column(vec![
             Colour::Black,
             Colour::Green,
-            Colour::White,
+            Colour::Blue,
             Colour::Red,
             Colour::Black,
         ])

@@ -94,6 +94,11 @@ impl MazeLineMap {
         // x: <-->
         //
         // mod by (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) to get block indices
+
+        if x > 85.0 {
+            println!("beep");
+        }
+
         let col_index = x.floor() as usize / (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) as usize;
         let row_index = y.floor() as usize / (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) as usize;
 
@@ -116,7 +121,7 @@ impl MazeLineMap {
         // |      : vertical line (|)     ↓
 
         // if we are outside the maze then just return white
-        if col_index >= self.columns.len() || row_index >= self.rows.len() {
+        if col_index > self.columns.len() || row_index > self.rows.len() {
             return Some(Colour::White);
         }
 

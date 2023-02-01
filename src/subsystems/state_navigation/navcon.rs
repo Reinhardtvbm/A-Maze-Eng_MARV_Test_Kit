@@ -147,18 +147,24 @@ impl NavCon {
                     for (index, colour) in working_data.colours.into_iter().enumerate() {
                         if colour != Colour::White {
                             match index {
-                                1 => self.handle_incidence_with_line(
-                                    working_data.incidence,
-                                    working_data.distance,
-                                    colour,
-                                    Side::Left,
-                                ),
-                                3 => self.handle_incidence_with_line(
-                                    working_data.incidence,
-                                    working_data.distance,
-                                    colour,
-                                    Side::Right,
-                                ),
+                                1 => {
+                                    self.handle_incidence_with_line(
+                                        working_data.incidence,
+                                        working_data.distance,
+                                        colour,
+                                        Side::Left,
+                                    );
+                                    break;
+                                }
+                                3 => {
+                                    self.handle_incidence_with_line(
+                                        working_data.incidence,
+                                        working_data.distance,
+                                        colour,
+                                        Side::Right,
+                                    );
+                                    break;
+                                }
                                 0 | 4 => self.reference_distance = working_data.distance,
                                 _ => {}
                             }
@@ -170,7 +176,7 @@ impl NavCon {
                 // until MARV has reversed for 6cm, keep reversing....
 
                 //println!("{}", working_data.distance);
-                if working_data.distance < 15 {
+                if working_data.distance < 22 {
                     return;
                 }
 

@@ -5,6 +5,10 @@ use std::collections::VecDeque;
 pub enum Window {
     Main,
     NAVCONQtp1,
+    NAVCONQtp2,
+    NAVCONQtp3,
+    NAVCONQtp4,
+    NAVCONQtp5,
 }
 
 pub struct WindowHistory(VecDeque<Window>);

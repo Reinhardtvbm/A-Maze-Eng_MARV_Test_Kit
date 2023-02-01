@@ -1,4 +1,4 @@
-//! # NAVCON QTP 1
+//! # NAVCON QTP 3
 //!
 //! Tests whether the NAVCON responds correctly to
 //! a red OR green line, when they are encountered
@@ -20,23 +20,45 @@ use crate::{
     gui::maze::MazeLineMap,
 };
 
-pub fn generate_navcon_qtp_1_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
+pub fn generate_navcon_qtp_3_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> MazeLineMap {
     // INITIALISE THE MAZE
-    let mut maze_map = MazeLineMap::new(4, 1);
+    let mut maze_map = MazeLineMap::new(4, 2);
 
     maze_map
         .add_column(vec![
             Colour::Black,
             Colour::Green,
             Colour::White,
-            Colour::Red,
+            Colour::Blue,
             Colour::Black,
         ])
         .unwrap();
 
-    for _ in 0..4 {
-        maze_map.add_row(vec![Colour::Black; 2]).unwrap();
-    }
+    maze_map
+        .add_column(vec![
+            Colour::Black,
+            Colour::White,
+            Colour::Black,
+            Colour::Black,
+            Colour::Black,
+        ])
+        .unwrap();
+
+    maze_map
+        .add_row(vec![Colour::Black, Colour::Black, Colour::Black])
+        .unwrap();
+
+    maze_map
+        .add_row(vec![Colour::Black, Colour::Black, Colour::Black])
+        .unwrap();
+
+    maze_map
+        .add_row(vec![Colour::Red, Colour::White, Colour::Black])
+        .unwrap();
+
+    maze_map
+        .add_row(vec![Colour::Black, Colour::White, Colour::Black])
+        .unwrap();
 
     // PAINT THE MAZE ON UI
     maze_map.paint(ui);

@@ -98,6 +98,10 @@ impl Ss {
 
                         println!("{:?}", colours);
 
+                        // if colours.contains(&Colour::Black) {
+                        //     panic!("beewhoop");
+                        // }
+
                         for (index, colour) in colours.into_iter().enumerate() {
                             word |= (colour as u16) << 12 >> (index * 3);
                         }
