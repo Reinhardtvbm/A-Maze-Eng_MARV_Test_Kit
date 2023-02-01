@@ -1,5 +1,3 @@
-use crossbeam::channel::{self, Receiver, Sender};
-
 use crate::{
     asynchronous::one_to_many_channel::OTMChannel,
     components::{
@@ -12,31 +10,23 @@ use crate::{
         state::SystemState,
     },
     gui::maze::MazeLineMap,
-    subsystems::sensor_positions::SensorPosComputer,
 };
 
 #[derive(Debug)]
 pub struct Ss {
     comms: OTMChannel<Packet>,
     state: SystemState,
-    positions_receiver: Receiver<[(f32, f32); 5]>,
+    curr_positions: [(f32, f32); 5],
+    positions_channel: OTMChannel<[(f32, f32); 5]>,
 }
 
 impl Ss {
-    pub fn new(
-        comms: OTMChannel<Packet>,
-        mut position_calculator: SensorPosComputer,
-        wheel_receiver: Receiver<(i16, i16)>,
-        gui_tx: Sender<[(f32, f32); 5]>,
-    ) -> Self {
-        let (pos_tx, pos_rx) = channel::bounded(1);
-
-        std::thread::spawn(move || position_calculator.compute_pos(wheel_receiver, pos_tx, gui_tx));
-
+    pub fn new(comms: OTMChannel<Packet>, positions_channel: OTMChannel<[(f32, f32); 5]>) -> Self {
         Self {
             state: SystemState::Idle,
             comms,
-            positions_receiver: pos_rx,
+            curr_positions: [(0., 0.); 5],
+            positions_channel,
         }
     }
 
@@ -73,10 +63,12 @@ impl Ss {
                     let mut colours = Vec::new();
 
                     // NOTE: recv() blocks this thread until new data is received
-                    let latest_positions = self.positions_receiver.recv().unwrap();
+                    if let Ok(new_positions) = self.positions_channel.try_receive() {
+                        self.curr_positions = new_positions;
+                    }
 
                     // get the colours under each sensor
-                    latest_positions.iter().for_each(|sensor_pos| {
+                    self.curr_positions.iter().for_each(|sensor_pos| {
                         colours.push(
                             maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
                                 .expect("FATAL: colour in maze not found"),
@@ -103,6 +95,8 @@ impl Ss {
                         self.write(MAZE_END_OF_MAZE);
                     } else {
                         let mut word: u16 = 0;
+
+                        println!("{:?}", colours);
 
                         for (index, colour) in colours.into_iter().enumerate() {
                             word |= (colour as u16) << 12 >> (index * 3);

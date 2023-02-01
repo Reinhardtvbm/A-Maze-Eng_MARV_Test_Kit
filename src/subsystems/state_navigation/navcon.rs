@@ -170,7 +170,7 @@ impl NavCon {
                 // until MARV has reversed for 6cm, keep reversing....
 
                 //println!("{}", working_data.distance);
-                if working_data.distance < 30 {
+                if working_data.distance < 15 {
                     return;
                 }
 

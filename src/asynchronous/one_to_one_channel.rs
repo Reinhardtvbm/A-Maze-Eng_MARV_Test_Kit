@@ -1,6 +1,7 @@
 use std::{
     fmt,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use crate::components::buffer::Buffer;
@@ -32,7 +33,11 @@ impl<T: Copy + fmt::Debug> OTOChannel<T> {
     pub fn send(&self, data: T) {
         println!("{} sending {:?}", self.name, data);
 
-        self.endpoint.lock().unwrap().write(data);
+        if self.endpoint.lock().unwrap().empty() {
+            self.endpoint.lock().unwrap().write(data);
+        } else {
+            std::thread::sleep(Duration::from_micros(1));
+        }
     }
 
     /// wait for data to be present in the buffer, before returning

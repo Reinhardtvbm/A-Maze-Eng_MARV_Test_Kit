@@ -29,6 +29,10 @@ impl<T> Buffer<T> {
         self.0.push_front(data);
     }
 
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     /// read the value at the back of the queue and remove it
     /// from the Buffer
     pub fn read(&mut self) -> Option<T> {

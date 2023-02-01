@@ -1,9 +1,5 @@
-use std::time::Duration;
-
-use crossbeam::channel::Sender;
-
 use crate::{
-    asynchronous::one_to_many_channel::OTMChannel,
+    asynchronous::{one_to_many_channel::OTMChannel, one_to_one_channel::OTOChannel},
     components::{
         adjacent_bytes::AdjacentBytes,
         buffer::BufferUser,
@@ -12,14 +8,13 @@ use crate::{
         packet::Packet,
         state::SystemState,
     },
-    subsystems::motor_subsystem::wheel::Wheels,
+    subsystems::{motor_subsystem::wheel::Wheels, sensor_positions::Speeds},
 };
 
 /**
     # Motor-driver and Power Subsystem (MDPS) struct
     Provides a way to emulate the MDPS
 **/
-#[derive(Debug)]
 pub struct Mdps {
     comms: OTMChannel<Packet>,
     /// Wheels is a struct that contains data for speed, distance,
@@ -30,6 +25,7 @@ pub struct Mdps {
     state: SystemState,
     /// The desired operating velocity during maze navigation
     operational_velocity: u8,
+    speed_comms: OTOChannel<Speeds>,
 }
 
 impl Mdps {
@@ -37,16 +33,17 @@ impl Mdps {
     ///
     /// If the test kit is running with one or more real subsystems, commport will be Some(..), otherwise it
     /// must be None
-    pub fn new(comms: OTMChannel<Packet>, wheels: Wheels) -> Self {
+    pub fn new(comms: OTMChannel<Packet>, speed_comms: OTOChannel<Speeds>, wheels: Wheels) -> Self {
         Self {
             wheels,
             state: SystemState::Idle,
             operational_velocity: 0,
             comms,
+            speed_comms,
         }
     }
 
-    pub fn run(&mut self, wheel_speeds: Sender<(i16, i16)>) {
+    pub fn run(&mut self) {
         let mut end_of_maze = false;
 
         while !end_of_maze {
@@ -60,6 +57,8 @@ impl Mdps {
                         self.operational_velocity = packet.dat0();
                         self.state = SystemState::Calibrate;
                     }
+
+                    // println!("MDPS going to cal");
                 }
                 SystemState::Calibrate => {
                     /* Calibration things */
@@ -136,21 +135,33 @@ impl Mdps {
                                 while self.wheels.get_rotation() < target_rotation {
                                     self.wheels.update_distance();
 
-                                    match wheel_speeds
-                                        .try_send((self.wheels.get_left(), self.wheels.get_right()))
-                                    {
-                                        Ok(_) => println!(
-                                            "successfully sent wheel speeds to calculator thread"
-                                        ),
-                                        Err(e) => {
-                                            println!("INFO: mdps run thread could not send data to sensor positions calculator thread, {}", e);
-                                            std::thread::sleep(Duration::from_millis(10));
-                                        }
-                                    }
+                                    let left_speed = self.wheels.get_left();
+                                    let right_speed = self.wheels.get_right();
+
+                                    self.speed_comms
+                                        .send(Speeds::new(left_speed as f32, right_speed as f32));
+
+                                    // match wheel_speeds
+                                    //     .try_send((self.wheels.get_left(), self.wheels.get_right()))
+                                    // {
+                                    //     Ok(_) => println!(
+                                    //         "successfully sent wheel speeds to calculator thread"
+                                    //     ),
+                                    //     Err(e) => {
+                                    //         println!("INFO: mdps run thread could not send data to sensor positions calculator thread, {}", e);
+                                    //         std::thread::sleep(Duration::from_millis(10));
+                                    //     }
+                                    // }
                                 }
                             }
 
-                            wheel_speeds.send((self.wheels.get_left(), self.wheels.get_right())).expect("FATAL: mdps run thread could not send data to sensor positions calculator thread");
+                            let left_speed = self.wheels.get_left();
+                            let right_speed = self.wheels.get_right();
+
+                            self.speed_comms
+                                .send(Speeds::new(left_speed as f32, right_speed as f32));
+
+                            // wheel_speeds.send((self.wheels.get_left(), self.wheels.get_right())).expect("FATAL: mdps run thread could not send data to sensor positions calculator thread");
 
                             // write battery level (no longer required as of 2022, so just send 0's)
                             self.write(MAZE_BATTERY_LEVEL);

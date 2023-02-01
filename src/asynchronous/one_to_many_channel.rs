@@ -1,6 +1,7 @@
 use std::{
     fmt,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use crate::components::buffer::Buffer;
@@ -53,7 +54,12 @@ impl<T: Copy + fmt::Debug> OTMChannel<T> {
         println!("{} sending {:?}", self.name, data);
 
         self.endpoints.iter().for_each(|buffer| {
-            buffer.lock().unwrap().write(data);
+            if buffer.lock().unwrap().len() <= 10 {
+                buffer.lock().unwrap().write(data);
+            } else {
+                std::thread::sleep(Duration::from_micros(1));
+            }
+            //buffer.lock().unwrap().write(data);
         });
     }
 

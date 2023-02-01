@@ -1,13 +1,17 @@
 extern crate crossbeam;
 extern crate eframe;
 
-use std::{thread::JoinHandle, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    thread::JoinHandle,
+    time::Duration,
+};
 
-use crossbeam::channel::{self, Receiver};
 use eframe::egui::{self, Response, Ui};
 
 use crate::{
     components::{
+        buffer::Buffer,
         colour::Colour,
         constants::{
             DEFUALT_COM_PORT, DEFUALT_STARTING_POSITION, HUGE_PADDING, LARGE_PADDING,
@@ -28,7 +32,7 @@ enum QTPState {
 pub struct MARVApp {
     state: WindowHistory,
     qtp_state: QTPState,
-    sensor_positions_receiver: Receiver<[(f32, f32); 5]>,
+    sensor_positions: Arc<Mutex<Buffer<[(f32, f32); 5]>>>,
     test_thread: Option<JoinHandle<()>>,
 }
 
@@ -38,12 +42,11 @@ impl MARVApp {
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
-        let (_, sens_rx) = channel::bounded(10);
 
         Self {
             state: WindowHistory::new(),
             qtp_state: QTPState::Idle,
-            sensor_positions_receiver: sens_rx,
+            sensor_positions: Arc::new(Mutex::new(Buffer::new())),
             test_thread: None,
         }
     }
@@ -143,36 +146,36 @@ impl MARVApp {
 
         match self.qtp_state {
             QTPState::Busy => {
-                let positions = self.sensor_positions_receiver.recv().unwrap();
+                if let Some(positions) = self.sensor_positions.lock().unwrap().read() {
+                    println!("painting with: {:?}", positions);
+                    let maze = generate_navcon_qtp_1_maze(ui, positions);
 
-                //println!("painting with: {:?}", positions);
-                let maze = generate_navcon_qtp_1_maze(ui, positions);
+                    let mut colours = Vec::new();
 
-                //println!("{:?}", latest_positions);
-                let mut colours = Vec::new();
+                    // get the colours under each sensor
+                    positions.iter().for_each(|sensor_pos| {
+                        colours.push(
+                            maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
+                                .expect("FATAL: colour in maze not found"),
+                        )
+                    });
 
-                // get the colours under each sensor
-                positions.iter().for_each(|sensor_pos| {
-                    colours.push(
-                        maze.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
-                            .expect("FATAL: colour in maze not found"),
-                    )
-                });
+                    if positions[0].1 > 1000.0
+                        || colours.iter().all(|colour| *colour == Colour::Red)
+                    {
+                        self.qtp_state = QTPState::Idle;
+                    }
 
-                if positions[0].1 > 1000.0 || colours.iter().all(|colour| *colour == Colour::Red) {
-                    self.qtp_state = QTPState::Idle;
+                    ctx.request_repaint();
                 }
-
-                ctx.request_repaint();
             }
             QTPState::Idle => {
                 let maze = generate_navcon_qtp_1_maze(ui, [(0.1, 0.05); 5]);
 
-                let (sens_tx, sens_rx) = channel::bounded(10);
-                self.sensor_positions_receiver = sens_rx;
-
                 if ui.button("start").clicked() {
                     self.qtp_state = QTPState::Busy;
+
+                    let gui_thread_origin = Arc::clone(&self.sensor_positions);
 
                     self.test_thread = Some(std::thread::spawn(move || {
                         std::thread::sleep(Duration::from_millis(5));
@@ -187,7 +190,7 @@ impl MARVApp {
                             maze,
                             DEFUALT_STARTING_POSITION, // in meters
                             NINETY_DEGREES,
-                            sens_tx,
+                            &gui_thread_origin,
                         );
                     }));
                 }
