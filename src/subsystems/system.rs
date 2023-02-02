@@ -40,7 +40,7 @@ pub fn run_system(
     _mdps_com: &str,
     maze: MazeLineMap,
     start_pos: (f32, f32),
-    _start_angle: f32,
+    start_angle: f32,
     // positions data going to the GUI thread
     to_gui: &Arc<Mutex<Buffer<[(f32, f32); 5]>>>,
 ) {
@@ -107,6 +107,7 @@ pub fn run_system(
         start_pos.1,
         sensor_pos_comms_speeds,
         sensor_pos_comms_positions,
+        start_angle,
     );
 
     std::thread::spawn(move || sensor_position_computer.compute_pos());

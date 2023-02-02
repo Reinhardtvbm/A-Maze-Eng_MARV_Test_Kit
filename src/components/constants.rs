@@ -15,7 +15,7 @@ pub const MAZE_TOP_JUSTIFICATION: f32 = 80.0 + (MAZE_ROW_HEIGHT / 2.5);
 // =================================================================================
 // Robot dimensions
 
-pub const B_ISD: u16 = 65; // big inter-sensor distance (in mm)
+pub const B_ISD: u16 = 45; // big inter-sensor distance (in mm)
 pub const S_ISD: u16 = 15; // small inter-sensor distance (in mm)
 pub const AXLE_DIST: i16 = 75; // length of the axle (in mm)
 
@@ -29,7 +29,7 @@ type Bytes = [u8; 4];
 pub const HUB_START: Bytes = [0, 0, 0, 0];
 pub const HUB_END_OF_MAZE: Bytes = [1, 0, 0, 0];
 
-pub const IDLE_BUTTON_TOUCHED: Bytes = [16, 1, 50, 0];
+pub const IDLE_BUTTON_TOUCHED: Bytes = [16, 1, 30, 0];
 pub const IDLE_BUTTON_NOT_TOUCHED: Bytes = [16, 0, 0, 0];
 
 pub const CAL_CALIBRATED: Bytes = [112, 0, 0, 0];

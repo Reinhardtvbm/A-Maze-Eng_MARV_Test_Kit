@@ -2,6 +2,7 @@ extern crate crossbeam;
 extern crate eframe;
 
 use std::{
+    f32::consts::PI,
     sync::{Arc, Mutex},
     thread::JoinHandle,
     time::Duration,
@@ -322,8 +323,11 @@ impl MARVApp {
                             DEFUALT_COM_PORT,
                             DEFUALT_COM_PORT,
                             maze,
-                            DEFUALT_STARTING_POSITION, // in meters
-                            NINETY_DEGREES,
+                            (
+                                DEFUALT_STARTING_POSITION.0 - 0.02,
+                                DEFUALT_STARTING_POSITION.1,
+                            ), // in meters
+                            NINETY_DEGREES - (PI / 9.0),
                             &gui_thread_origin,
                         );
                     }));

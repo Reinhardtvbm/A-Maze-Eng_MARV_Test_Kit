@@ -91,8 +91,8 @@ impl NavCon {
         self.current_state = NavConState::Stop;
 
         self.next_state = match side {
-            Side::Left => NavConState::RotateLeft,
-            Side::Right => NavConState::RotateRight,
+            Side::Left => NavConState::RotateRight,
+            Side::Right => NavConState::RotateLeft,
         };
 
         self.previously_encountered_colour = Colour::Green;
@@ -176,7 +176,7 @@ impl NavCon {
                 // until MARV has reversed for 6cm, keep reversing....
 
                 //println!("{}", working_data.distance);
-                if working_data.distance < 22 {
+                if working_data.distance < 30 {
                     return;
                 }
 

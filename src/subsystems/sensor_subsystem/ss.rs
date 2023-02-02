@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::{
     asynchronous::one_to_many_channel::OTMChannel,
     components::{
@@ -5,7 +7,7 @@ use crate::{
         buffer::BufferUser,
         colour::Colour,
         comm_port::ControlByte,
-        constants::{CAL_CALIBRATED, CAL_COLOURS, MAZE_END_OF_MAZE},
+        constants::{B_ISD, CAL_CALIBRATED, CAL_COLOURS, MAZE_END_OF_MAZE},
         packet::Packet,
         state::SystemState,
     },
@@ -18,6 +20,7 @@ pub struct Ss {
     state: SystemState,
     curr_positions: [(f32, f32); 5],
     positions_channel: OTMChannel<[(f32, f32); 5]>,
+    reference_distance: u16,
 }
 
 impl Ss {
@@ -27,6 +30,7 @@ impl Ss {
             comms,
             curr_positions: [(0., 0.); 5],
             positions_channel,
+            reference_distance: 0,
         }
     }
 
@@ -89,7 +93,11 @@ impl Ss {
                         break;
                     }
 
-                    self.wait_for_packet(164.into());
+                    let distance_packet = self.wait_for_packet(164.into());
+                    let distance = u16::from(AdjacentBytes::make(
+                        distance_packet.dat1(),
+                        distance_packet.dat0(),
+                    ));
 
                     if end_of_maze {
                         self.write(MAZE_END_OF_MAZE);
@@ -98,18 +106,42 @@ impl Ss {
 
                         println!("{:?}", colours);
 
-                        // if colours.contains(&Colour::Black) {
-                        //     panic!("beewhoop");
-                        // }
+                        if colours.contains(&Colour::Blue) {
+                            println!("beewhoop");
+                        }
+
+                        let mut angle = 0;
+
+                        if colours[0] != Colour::White || colours[4] != Colour::White {
+                            self.reference_distance = distance;
+                        } else if colours[1] != Colour::White
+                            || colours[3] != Colour::White
+                                && (colours[0] == Colour::White && colours[4] == Colour::White)
+                        {
+                            let mut travelled = distance as i16 - self.reference_distance as i16;
+
+                            if travelled < 0 {
+                                travelled = 0;
+                            }
+
+                            if colours.contains(&Colour::Red) {
+                                println!("beep");
+                            }
+
+                            angle = ((travelled as f32 / B_ISD as f32).atan() * (180.0 / PI)) as u8;
+                        }
 
                         for (index, colour) in colours.into_iter().enumerate() {
                             word |= (colour as u16) << 12 >> (index * 3);
                         }
-
                         let bytes: AdjacentBytes = word.into();
 
+                        if angle >= 5 {
+                            println!("weird");
+                        }
+
                         self.write([177, bytes.msb(), bytes.lsb(), 0]);
-                        self.write([178, 0, 0, 0]);
+                        self.write([178, angle, 0, 0]);
                     }
                 }
                 SystemState::Sos => todo!(),
