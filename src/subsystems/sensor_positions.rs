@@ -47,6 +47,7 @@ impl SensorPosComputer {
         init_y: f32,
         in_channel: OTOChannel<Speeds>,
         out_channel: OTMChannel<[(f32, f32); 5]>,
+        start_angle: f32,
     ) -> Self {
         let inside_rad: f32 =
             ((AXLE_DIST as f32).powi(2) + (S_ISD as f32).powi(2)).sqrt() / 1_000.0;
@@ -73,7 +74,7 @@ impl SensorPosComputer {
             robot_parameters: RobotParams {
                 x: init_x,
                 y: init_y,
-                angle: PI / 2.0,
+                angle: start_angle,
             },
             in_channel,
             out_channel,
@@ -106,13 +107,13 @@ impl SensorPosComputer {
         self.calculation_parameters.time = SystemTime::now();
 
         let angular_velocity =
-            ((right_speed - left_speed) / 1_000.0) / (AXLE_DIST as f32 / 1_000.0);
+            ((right_speed - left_speed) / 1_000.0) / (AXLE_DIST as f32 / 1_000.0) * 1.00;
 
         let linear_velocity = ((right_speed + left_speed) / 1_000.0) / 2.0;
 
         // trapezoidal rule for integrals
         self.robot_parameters.angle += elapsed_time
-            * ((self.calculation_parameters.prev_angular_velocity + angular_velocity) / 2.0);
+            * ((self.calculation_parameters.prev_angular_velocity + angular_velocity) / 1.957);
         self.robot_parameters.x +=
             elapsed_time * linear_velocity * self.robot_parameters.angle.cos();
         self.robot_parameters.y +=

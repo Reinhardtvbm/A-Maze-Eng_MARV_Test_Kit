@@ -93,9 +93,9 @@ impl MazeLineMap {
         //
         // mod by (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) to get block indices
 
-        if x > 85.0 {
-            println!("beep");
-        }
+        // if x > 85.0 {
+        //     println!("beep");
+        // }
 
         let col_index = x.floor() as usize / (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) as usize;
         let row_index = y.floor() as usize / (MAZE_LINE_LENGTH + MAZE_LINE_WIDTH) as usize;

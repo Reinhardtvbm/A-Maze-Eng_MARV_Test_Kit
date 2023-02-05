@@ -2,6 +2,7 @@ extern crate crossbeam;
 extern crate eframe;
 
 use std::{
+    f32::consts::PI,
     sync::{Arc, Mutex},
     thread::JoinHandle,
 };

@@ -53,7 +53,7 @@ pub fn generate_navcon_qtp_3_maze(ui: &mut Ui, sensor_pos: [(f32, f32); 5]) -> M
         .unwrap();
 
     maze_map
-        .add_row(vec![Colour::Red, Colour::White, Colour::Black])
+        .add_row(vec![Colour::Black, Colour::White, Colour::Red])
         .unwrap();
 
     maze_map

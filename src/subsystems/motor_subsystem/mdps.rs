@@ -109,17 +109,17 @@ impl Mdps {
                                 }
                                 2 => {
                                     self.wheels
-                                        .set_left_wheel_speed(-(self.operational_velocity as i16));
+                                        .set_left_wheel_speed(self.operational_velocity as i16);
                                     self.wheels
-                                        .set_right_wheel_speed(self.operational_velocity as i16);
+                                        .set_right_wheel_speed(-(self.operational_velocity as i16));
 
                                     rotating = true;
                                 }
                                 3 => {
                                     self.wheels
-                                        .set_left_wheel_speed(self.operational_velocity as i16);
+                                        .set_left_wheel_speed(-(self.operational_velocity as i16));
                                     self.wheels
-                                        .set_right_wheel_speed(-(self.operational_velocity as i16));
+                                        .set_right_wheel_speed(self.operational_velocity as i16);
 
                                     rotating = true;
                                 }
@@ -129,7 +129,7 @@ impl Mdps {
                             self.wheels.update_distance();
 
                             if rotating {
-                                let target_rotation =
+                                let target_rotation: u16 =
                                     AdjacentBytes::make(packet.dat1(), packet.dat0()).into();
 
                                 while self.wheels.get_rotation() < target_rotation {
