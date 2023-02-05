@@ -44,10 +44,7 @@ impl<T: Copy + fmt::Debug> OTMChannel<T> {
         Self {
             name: String::from(name),
             // map each endpoint data to an Arc<Mutex<endpoint>>
-            endpoints: endpoints
-                .into_iter()
-                .map(|element| Arc::clone(element))
-                .collect(),
+            endpoints: endpoints.into_iter().map(Arc::clone).collect(),
             origin: Arc::clone(origin),
             bound,
         }
@@ -87,7 +84,7 @@ impl<T: Copy + fmt::Debug> OTMChannel<T> {
     /// checks if there is data in the origin buffer, and returns it if
     /// there is
     pub fn try_receive(&mut self) -> Result<T, ChannelRecErr> {
-        if self.origin.lock().unwrap().empty() {
+        if self.origin.lock().unwrap().is_empty() {
             Err(ChannelRecErr::NoData)
         } else {
             Ok(self.origin.lock().unwrap().read().unwrap())

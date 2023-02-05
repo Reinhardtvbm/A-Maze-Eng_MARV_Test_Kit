@@ -1,21 +1,26 @@
 use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Copy)]
-#[non_exhaustive]
 pub enum Window {
     Main,
-    NAVCONQtp1,
-    NAVCONQtp2,
-    NAVCONQtp3,
-    NAVCONQtp4,
-    NAVCONQtp5,
+    Navcon(QtpNo),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum QtpNo {
+    Qtp1,
+    Qtp2,
+    Qtp3,
+    Qtp4,
+    Qtp5,
+}
+
+#[derive(Default)]
 pub struct WindowHistory(VecDeque<Window>);
 
 impl WindowHistory {
     pub fn new() -> Self {
-        Self(VecDeque::new())
+        Self::default()
     }
 
     /// get the current window

@@ -29,6 +29,7 @@ pub mod subsystems {
 }
 
 pub mod asynchronous {
+    pub mod async_type;
     pub mod channel_err;
     pub mod one_to_many_channel;
     pub mod one_to_one_channel;

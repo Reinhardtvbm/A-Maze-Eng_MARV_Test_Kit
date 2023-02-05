@@ -68,9 +68,8 @@ impl MazeLineMap {
         } else if self.columns.len() == self.width {
             Err(MazeError::ColumnsFull)
         } else {
-            self.columns.push(Column(
-                column.into_iter().map(|colour| Line(colour)).collect(),
-            ));
+            self.columns
+                .push(Column(column.into_iter().map(Line).collect()));
 
             Ok(())
         }
@@ -82,8 +81,7 @@ impl MazeLineMap {
         } else if self.rows.len() == self.height {
             Err(MazeError::RowsFull)
         } else {
-            self.rows
-                .push(Row(row.into_iter().map(|colour| Line(colour)).collect()));
+            self.rows.push(Row(row.into_iter().map(Line).collect()));
 
             Ok(())
         }
@@ -141,6 +139,16 @@ impl MazeLineMap {
         } else {
             Some(Colour::White)
         }
+    }
+
+    pub fn get_colours(&self, positions: [(f32, f32); 5]) -> Vec<Colour> {
+        positions
+            .iter()
+            .map(|sensor_pos| {
+                self.get_colour_from_coord(sensor_pos.0, sensor_pos.1)
+                    .expect("FATAL: colour in maze not found")
+            })
+            .collect()
     }
 
     pub fn paint(&self, ui: &Ui) {
@@ -214,7 +222,10 @@ impl Line {
     }
 }
 
+#[derive(Default)]
 pub struct Column(Vec<Line>);
+
+#[derive(Default)]
 pub struct Row(Vec<Line>);
 
 impl Column {
@@ -227,16 +238,13 @@ impl Column {
     }
 
     pub fn get(&self, index: usize) -> Option<Colour> {
-        match self.0.get(index) {
-            Some(line) => Some(line.0),
-            None => None,
-        }
+        self.0.get(index).map(|line| line.0)
     }
 }
 
 impl Row {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self::default()
     }
 
     pub fn lines(&self) -> &Vec<Line> {
@@ -244,9 +252,6 @@ impl Row {
     }
 
     pub fn get(&self, index: usize) -> Option<Colour> {
-        match self.0.get(index) {
-            Some(line) => Some(line.0),
-            None => None,
-        }
+        self.0.get(index).map(|line| line.0)
     }
 }

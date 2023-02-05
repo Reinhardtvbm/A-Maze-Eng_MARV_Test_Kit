@@ -33,7 +33,7 @@ impl<T: Copy + fmt::Debug> OTOChannel<T> {
     pub fn send(&self, data: T) {
         println!("{} sending {:?}", self.name, data);
 
-        if self.endpoint.lock().unwrap().empty() {
+        if self.endpoint.lock().unwrap().is_empty() {
             self.endpoint.lock().unwrap().write(data);
         } else {
             std::thread::sleep(Duration::from_nanos(100));
@@ -53,7 +53,7 @@ impl<T: Copy + fmt::Debug> OTOChannel<T> {
     /// checks if there is data in the origin buffer, and returns it if
     /// there is
     pub fn try_receive(&mut self) -> Result<T, ChannelRecErr> {
-        if self.origin.lock().unwrap().empty() {
+        if self.origin.lock().unwrap().is_empty() {
             Err(ChannelRecErr::NoData)
         } else {
             Ok(self.origin.lock().unwrap().read().unwrap())

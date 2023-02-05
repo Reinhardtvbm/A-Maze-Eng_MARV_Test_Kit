@@ -2,7 +2,9 @@
 //!     will emulate the maze robot
 
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
+use crate::asynchronous::async_type::PositionsEndpoint;
 use crate::asynchronous::one_to_many_channel::{Bound, OTMChannel};
 use crate::asynchronous::one_to_one_channel::OTOChannel;
 use crate::components::buffer::Buffer;
@@ -17,7 +19,7 @@ use super::motor_subsystem::wheel::Wheels;
 use super::sensor_positions::SensorPosComputer;
 use super::serial_relay::SerialRelay;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
     Emulate,
     Physical,
@@ -42,8 +44,10 @@ pub fn run_system(
     start_pos: (f32, f32),
     _start_angle: f32,
     // positions data going to the GUI thread
-    to_gui: &Arc<Mutex<Buffer<[(f32, f32); 5]>>>,
+    to_gui: &PositionsEndpoint,
 ) {
+    std::thread::sleep(Duration::from_secs(1));
+
     let wheels = Wheels::new(10.0);
     let thread;
 

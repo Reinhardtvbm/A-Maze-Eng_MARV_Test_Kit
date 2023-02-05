@@ -45,7 +45,7 @@ impl<T> Buffer<T> {
         self.0.back()
     }
 
-    pub fn empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 }

@@ -107,9 +107,9 @@ impl Iterator for Colours {
     }
 }
 
-impl Into<(u8, u8, u8)> for Colour {
-    fn into(self) -> (u8, u8, u8) {
-        match self {
+impl From<Colour> for (u8, u8, u8) {
+    fn from(col: Colour) -> Self {
+        match col {
             Colour::White => (255, 255, 255),
             Colour::Red => (255, 0, 0),
             Colour::Green => (0, 255, 0),

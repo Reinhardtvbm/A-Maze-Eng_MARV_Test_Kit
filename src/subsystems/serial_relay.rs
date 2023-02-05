@@ -25,15 +25,13 @@ impl SerialRelay {
             }
 
             if let Ok(channel_data) = self.channel.try_receive() {
-                self.port
-                    .write(&mut channel_data.into())
-                    .unwrap_or_else(|_| {
-                        panic!(
-                            "FATAL: could not write to {} port (COM{})",
-                            self.channel.name(),
-                            self.port_number
-                        )
-                    });
+                self.port.write(&channel_data.into()).unwrap_or_else(|_| {
+                    panic!(
+                        "FATAL: could not write to {} port (COM{})",
+                        self.channel.name(),
+                        self.port_number
+                    )
+                });
             }
         }
     }
