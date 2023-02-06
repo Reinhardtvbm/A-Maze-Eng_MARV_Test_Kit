@@ -14,6 +14,6 @@ The purpose of this software is to allow Computer, Electronic, and Electrical En
 
 For more information see the [Practical Guide].
 
-[practical guide]: docs\Practical_Guide_to_an_AMazeENG_MARV_2022v3.pdf
+[practical guide]: docs/Practical_Guide_to_an_AMazeENG_MARV_2022v3.pdf
 
 As of 6 February 2023, this software cannot yet test physical hardware, however you can clone this repository and run the code to see how the emulations work for the implemented QTPs.
