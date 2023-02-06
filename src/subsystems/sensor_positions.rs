@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, time::SystemTime};
+use std::time::SystemTime;
 
 use crate::{
     asynchronous::{one_to_many_channel::OTMChannel, one_to_one_channel::OTOChannel},
@@ -113,7 +113,7 @@ impl SensorPosComputer {
 
         // trapezoidal rule for integrals
         self.robot_parameters.angle += elapsed_time
-            * ((self.calculation_parameters.prev_angular_velocity + angular_velocity) / 1.957);
+            * ((self.calculation_parameters.prev_angular_velocity + angular_velocity) / 1.960);
         self.robot_parameters.x +=
             elapsed_time * linear_velocity * self.robot_parameters.angle.cos();
         self.robot_parameters.y +=

@@ -2,7 +2,6 @@ extern crate crossbeam;
 extern crate eframe;
 
 use std::{
-    f32::consts::PI,
     sync::{Arc, Mutex},
     thread::JoinHandle,
 };
@@ -10,7 +9,7 @@ use std::{
 use eframe::egui::{self, Response, Ui};
 
 use crate::{
-    asynchronous::async_type::PositionsEndpoint,
+    asynchronous::async_type::{PacketsEndpoint, PositionsEndpoint},
     components::{
         buffer::Buffer,
         colour::Colour,
@@ -18,6 +17,7 @@ use crate::{
             DEFUALT_COM_PORT, DEFUALT_STARTING_POSITION, HUGE_PADDING, LARGE_PADDING,
             MEDIUM_PADDING, NINETY_DEGREES, SMALL_PADDING,
         },
+        packet::Packet,
     },
     gui::test_windows::navcon::qtp1::generate_navcon_qtp_1_maze,
     gui::test_windows::navcon::qtp2::generate_navcon_qtp_2_maze,
@@ -39,8 +39,11 @@ enum QTPState {
 
 pub struct MARVApp {
     state: WindowHistory,
+    snc_mode: Mode,
     qtp_state: QTPState,
+    latest_packet: Option<Packet>,
     sensor_positions: PositionsEndpoint,
+    subsystem_packets: PacketsEndpoint,
     test_thread: Option<JoinHandle<()>>,
     com_no: Option<String>,
 }
@@ -54,8 +57,11 @@ impl MARVApp {
 
         Self {
             state: WindowHistory::new(),
+            snc_mode: Mode::Emulate,
             qtp_state: QTPState::Idle,
+            latest_packet: None,
             sensor_positions: Arc::new(Mutex::new(Buffer::new())),
+            subsystem_packets: Arc::new(Mutex::new(Buffer::new())),
             test_thread: None,
             com_no: None,
         }
@@ -154,7 +160,7 @@ impl MARVApp {
     }
 
     fn paint_navcon_qtp_window(&mut self, ui: &mut Ui, ctx: &egui::Context, qtp_no: QtpNo) {
-        if ui.button("back").clicked() {
+        if ui.button("<").clicked() {
             self.state.pop();
         }
 
@@ -163,22 +169,24 @@ impl MARVApp {
         // add the correct heading to the Window
         match qtp_no {
             QtpNo::Qtp1 => {
-                ui.heading("    NAVCON QTP 1");
+                ui.heading("NAVCON QTP 1");
             }
             QtpNo::Qtp2 => {
-                ui.heading("    NAVCON QTP 2");
+                ui.heading("NAVCON QTP 2");
             }
             QtpNo::Qtp3 => {
-                ui.heading("    NAVCON QTP 3");
+                ui.heading("NAVCON QTP 3");
             }
             QtpNo::Qtp4 => {
-                ui.heading("    NAVCON QTP 4");
+                ui.heading("NAVCON QTP 4");
             }
             QtpNo::Qtp5 => {
-                ui.heading("    NAVCON QTP 5");
+                ui.heading("NAVCON QTP 5");
             }
         }
 
+        ui.add_space(MEDIUM_PADDING);
+        ui.separator();
         ui.add_space(LARGE_PADDING);
 
         // =================================================================================
@@ -196,39 +204,65 @@ impl MARVApp {
                 };
 
                 ui.horizontal(|ui| {
-                    if ui.button("start").clicked() {
-                        self.qtp_state = QTPState::Busy;
+                    if ui.button("Start").clicked() {
+                        if self.snc_mode == Mode::Emulate
+                            || (self.snc_mode == Mode::Physical && self.com_no.is_some())
+                        {
+                            self.qtp_state = QTPState::Busy;
 
-                        let gui_thread_origin = Arc::clone(&self.sensor_positions);
+                            let gui_thread_origin = Arc::clone(&self.sensor_positions);
+                            let gui_packets_origin = Arc::clone(&self.subsystem_packets);
 
-                        self.test_thread = Some(std::thread::spawn(move || {
-                            run_system(
-                                Mode::Emulate,
-                                Mode::Emulate,
-                                Mode::Emulate,
-                                DEFUALT_COM_PORT,
-                                DEFUALT_COM_PORT,
-                                DEFUALT_COM_PORT,
-                                maze,
-                                DEFUALT_STARTING_POSITION, // in meters
-                                NINETY_DEGREES,
-                                &gui_thread_origin,
-                            );
-                        }));
+                            self.test_thread = Some(std::thread::spawn(move || {
+                                run_system(
+                                    Mode::Emulate,
+                                    Mode::Emulate,
+                                    Mode::Emulate,
+                                    DEFUALT_COM_PORT,
+                                    DEFUALT_COM_PORT,
+                                    DEFUALT_COM_PORT,
+                                    maze,
+                                    DEFUALT_STARTING_POSITION, // in meters
+                                    NINETY_DEGREES,
+                                    &gui_thread_origin,
+                                    &gui_packets_origin,
+                                );
+                            }));
+                        }
                     }
 
                     ui.add_space(MEDIUM_PADDING);
 
-                    ui.menu_button("Select COM Port", |ui| {
-                        for port in serialport::available_ports().unwrap() {
-                            if ui
-                                .button(format!("{} ({:?})", port.port_name, port.port_type))
-                                .clicked()
-                            {
-                                self.com_no = Some(port.port_name);
-                            }
+                    if ui.button(format!("SNC Mode: {}", self.snc_mode)).clicked() {
+                        self.snc_mode = match self.snc_mode {
+                            Mode::Emulate => Mode::Physical,
+                            Mode::Physical => Mode::Emulate,
                         }
-                    });
+                    }
+
+                    ui.add_space(MEDIUM_PADDING);
+
+                    if self.snc_mode == Mode::Physical {
+                        let button_name = match &self.com_no {
+                            Some(com_no) => (*com_no).clone(),
+                            None => String::from("None"),
+                        };
+
+                        ui.menu_button(format!("Port: {}", button_name), |ui| {
+                            for port in serialport::available_ports().unwrap() {
+                                if ui
+                                    .button(format!("{} ({:?})", port.port_name, port.port_type))
+                                    .clicked()
+                                {
+                                    self.com_no = Some(port.port_name);
+                                }
+                            }
+
+                            if ui.button("None").clicked() {
+                                self.com_no = None;
+                            }
+                        });
+                    }
                 });
             }
             QTPState::Busy => {
@@ -247,9 +281,18 @@ impl MARVApp {
 
                     if colours.iter().all(|colour| *colour == Colour::Red) {
                         self.qtp_state = QTPState::Idle;
+                        self.latest_packet = None;
                     }
 
                     ctx.request_repaint();
+                }
+
+                if let Some(latest_packet) = self.subsystem_packets.lock().unwrap().read() {
+                    self.latest_packet = Some(latest_packet);
+                }
+
+                if let Some(packet) = self.latest_packet {
+                    ui.label(format!("{:?}", packet));
                 }
             }
         }

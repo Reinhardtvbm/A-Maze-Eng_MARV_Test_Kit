@@ -1,10 +1,11 @@
 //! The bread and butter of the program:
 //!     will emulate the maze robot
 
+use std::fmt;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::asynchronous::async_type::PositionsEndpoint;
+use crate::asynchronous::async_type::{PacketsEndpoint, PositionsEndpoint};
 use crate::asynchronous::one_to_many_channel::{Bound, OTMChannel};
 use crate::asynchronous::one_to_one_channel::OTOChannel;
 use crate::components::buffer::Buffer;
@@ -45,6 +46,7 @@ pub fn run_system(
     start_angle: f32,
     // positions data going to the GUI thread
     to_gui: &PositionsEndpoint,
+    to_gui_packets: &PacketsEndpoint,
 ) {
     std::thread::sleep(Duration::from_secs(1));
 
@@ -65,18 +67,31 @@ pub fn run_system(
     let to_snc = Arc::new(Mutex::new(Buffer::new()));
     let to_ss = Arc::new(Mutex::new(Buffer::new()));
     let to_mdps = Arc::new(Mutex::new(Buffer::new()));
+    let to_gui_packets = Arc::clone(&to_gui_packets);
 
     // ==================================================================================================================
 
     // CHANNEL variables:
 
     // packet channels (comms between 3 threads):
-    let snc_channel: OTMChannel<Packet> =
-        OTMChannel::with_endpoints("SNC", &to_snc, vec![&to_ss, &to_mdps], Bound::Inifinity);
-    let ss_channel: OTMChannel<Packet> =
-        OTMChannel::with_endpoints("SS", &to_ss, vec![&to_snc, &to_mdps], Bound::Inifinity);
-    let mdps_channel: OTMChannel<Packet> =
-        OTMChannel::with_endpoints("MDPS", &to_mdps, vec![&to_snc, &to_ss], Bound::Inifinity);
+    let snc_channel: OTMChannel<Packet> = OTMChannel::with_endpoints(
+        "SNC",
+        &to_snc,
+        vec![&to_ss, &to_mdps, &to_gui_packets],
+        Bound::Inifinity,
+    );
+    let ss_channel: OTMChannel<Packet> = OTMChannel::with_endpoints(
+        "SS",
+        &to_ss,
+        vec![&to_snc, &to_mdps, &to_gui_packets],
+        Bound::Inifinity,
+    );
+    let mdps_channel: OTMChannel<Packet> = OTMChannel::with_endpoints(
+        "MDPS",
+        &to_mdps,
+        vec![&to_snc, &to_ss, &to_gui_packets],
+        Bound::Inifinity,
+    );
 
     // speeds channels (comms between 2 threads):
     let sensor_pos_comms_speeds = OTOChannel::new(
@@ -154,4 +169,13 @@ pub fn run_system(
 
     thread.join().expect("could not join SNC thread");
     println!("system function ended");
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Mode::Emulate => write!(f, "Emulate"),
+            Mode::Physical => write!(f, "Physical"),
+        }
+    }
 }
