@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::comm_port::ControlByte;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,5 +40,15 @@ impl From<[u8; 4]> for Packet {
 impl From<Packet> for [u8; 4] {
     fn from(p: Packet) -> Self {
         [p.control_byte().into(), p.dat1(), p.dat0(), p.dec()]
+    }
+}
+
+impl fmt::Display for Packet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "[{}, {}, {}, {}]",
+            self.bytes[0], self.bytes[1], self.bytes[2], self.bytes[3]
+        )
     }
 }

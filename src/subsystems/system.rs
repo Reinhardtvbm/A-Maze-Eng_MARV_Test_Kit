@@ -48,7 +48,7 @@ pub fn run_system(
     to_gui: &PositionsEndpoint,
     to_gui_packets: &PacketsEndpoint,
 ) {
-    std::thread::sleep(Duration::from_secs(1));
+    std::thread::sleep(Duration::from_millis(200));
 
     let wheels = Wheels::new(10.0);
     let thread;

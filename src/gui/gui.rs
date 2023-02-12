@@ -25,6 +25,7 @@ use crate::{
 };
 
 use super::{
+    packet_display::LabelList,
     test_windows::navcon::{
         qtp3::generate_navcon_qtp_3_maze, qtp4::generate_navcon_qtp_4_maze,
         qtp5::generate_navcon_qtp_5_maze,
@@ -46,6 +47,7 @@ pub struct MARVApp {
     subsystem_packets: PacketsEndpoint,
     test_thread: Option<JoinHandle<()>>,
     com_no: Option<String>,
+    packet_labels: LabelList,
 }
 
 impl MARVApp {
@@ -64,6 +66,7 @@ impl MARVApp {
             subsystem_packets: Arc::new(Mutex::new(Buffer::new())),
             test_thread: None,
             com_no: None,
+            packet_labels: LabelList::new(),
         }
     }
 
@@ -209,7 +212,8 @@ impl MARVApp {
                             || (self.snc_mode == Mode::Physical && self.com_no.is_some())
                         {
                             self.qtp_state = QTPState::Busy;
-
+                            self.sensor_positions = Arc::new(Mutex::new(Buffer::new()));
+                            self.subsystem_packets = Arc::new(Mutex::new(Buffer::new()));
                             let gui_thread_origin = Arc::clone(&self.sensor_positions);
                             let gui_packets_origin = Arc::clone(&self.subsystem_packets);
 
@@ -292,8 +296,22 @@ impl MARVApp {
                 }
 
                 if let Some(packet) = self.latest_packet {
-                    ui.label(format!("{:?}", packet));
+                    self.packet_labels.push(format!("{}", packet).as_str());
                 }
+
+                ui.add_space(LARGE_PADDING);
+
+                ui.horizontal(|ui| {
+                    ui.add_space(300.0);
+
+                    ui.group(|ui| {
+                        ui.vertical(|ui| {
+                            self.packet_labels.to_vec().into_iter().for_each(|string| {
+                                ui.label(string);
+                            })
+                        })
+                    });
+                });
             }
         }
     }

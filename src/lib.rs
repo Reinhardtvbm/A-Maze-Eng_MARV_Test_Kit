@@ -38,6 +38,7 @@ pub mod gui {
     pub mod entry_window;
     pub mod gui;
     pub mod maze;
+    pub mod packet_display;
     pub mod window_stack;
 
     pub mod test_windows {
